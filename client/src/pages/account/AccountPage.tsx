@@ -3,20 +3,17 @@ import { Link } from 'react-router-dom'
 import { BookOpen, CheckCircle2, Clock, Lock, TrendingUp } from 'lucide-react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
-import { books } from '../../data/mockBooks'
-
-/** Design-only placeholders until reading progress API exists. */
-const FINISHED_SLUGS = ['the-enchanted-garden', 'midnight-in-the-museum'] as const
-const READING_SLUGS = ['sailing-to-tomorrow'] as const
+import { useMyReadingLibrary, trackReading } from '../../hooks/useReadingProgress'
 
 type LibraryTab = 'reading' | 'finished'
 
 export default function AccountPage() {
+  const { data: library, isLoading, isError } = useMyReadingLibrary()
   const [libraryTab, setLibraryTab] = useState<LibraryTab>('reading')
-  const finished = books.filter((b) => (FINISHED_SLUGS as readonly string[]).includes(b.slug))
-  const reading = books.filter((b) => (READING_SLUGS as readonly string[]).includes(b.slug))
-  const finishedPages = finished.reduce((sum, b) => sum + b.pages, 0)
-  const readingPages = reading.reduce((sum, b) => sum + b.pages, 0)
+
+  const reading = library?.currentlyReading ?? []
+  const finished = library?.finished ?? []
+  const stats = library?.stats
 
   const tabBtn = (active: boolean) =>
     [
@@ -25,6 +22,15 @@ export default function AccountPage() {
         ? 'bg-[#8B2635] text-[#FEF8EE] shadow-[0_4px_14px_rgba(139,38,53,0.3)]'
         : 'text-[#6B4226] hover:bg-[#F5D9A0]/55',
     ].join(' ')
+
+  const handleResume = (bookId: string, chapter: number, page: number) => {
+    trackReading({
+      bookId,
+      currentChapter: chapter,
+      currentPage: page,
+      action: 'continue_reading',
+    })
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FDF0D5]" style={{ fontFamily: "'Nunito', sans-serif" }}>
@@ -44,15 +50,15 @@ export default function AccountPage() {
             <div className="mx-auto grid w-full max-w-xl gap-3 sm:grid-cols-3 lg:mx-0 lg:max-w-[34rem]">
               <div className="rounded-xl border border-[#E8C98A]/80 bg-[#FDF0D5]/60 px-3.5 py-3 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Currently reading</p>
-                <p className="mt-1 text-lg font-bold text-[#3D2314]">{reading.length}</p>
+                <p className="mt-1 text-lg font-bold text-[#3D2314]">{stats?.currentlyReadingCount ?? 0}</p>
               </div>
               <div className="rounded-xl border border-[#E8C98A]/80 bg-[#FDF0D5]/60 px-3.5 py-3 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Finished books</p>
-                <p className="mt-1 text-lg font-bold text-[#3D2314]">{finished.length}</p>
+                <p className="mt-1 text-lg font-bold text-[#3D2314]">{stats?.finishedCount ?? 0}</p>
               </div>
               <div className="rounded-xl border border-[#E8C98A]/80 bg-[#FDF0D5]/60 px-3.5 py-3 text-center sm:col-span-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Pages explored</p>
-                <p className="mt-1 text-lg font-bold text-[#3D2314]">{finishedPages + readingPages}</p>
+                <p className="mt-1 text-lg font-bold text-[#3D2314]">{stats?.pagesExplored ?? 0}</p>
               </div>
             </div>
           </div>
@@ -97,44 +103,80 @@ export default function AccountPage() {
             className="h-[26rem] overflow-y-auto px-3 py-3 sm:px-4 sm:py-4"
             aria-label={libraryTab === 'reading' ? 'Currently reading' : 'Finished books'}
           >
-            {libraryTab === 'reading' ? (
-              <ul className="space-y-2 pr-1">
-                {reading.map((b) => (
-                  <li key={b.id}>
-                    <Link
-                      to={`/read/${b.id}/chapter/1`}
-                      className="flex items-center gap-3 rounded-xl border border-transparent bg-[#FDF0D5]/35 px-2.5 py-2.5 transition hover:border-[#E8C98A] hover:bg-[#FDF0D5]"
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <img src={b.coverImage} alt="" className="h-16 w-12 shrink-0 rounded-md object-cover shadow-md" />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-semibold text-[#3D2314]">{b.title}</div>
-                        <div className="mt-0.5 text-xs text-[#9B6B4A]">Chapter 1 · {b.chapters[0] ?? 'Continue'}</div>
-                        <div className="mt-1 text-[11px] font-semibold text-[#8B2635]">{b.pages} pages</div>
-                      </div>
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#8B2635] px-3 py-1 text-xs font-bold text-[#FEF8EE]">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        Resume
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+            {isLoading ? (
+              <p className="py-12 text-center text-sm text-[#9B6B4A]">Loading your library…</p>
+            ) : isError ? (
+              <p className="py-12 text-center text-sm text-[#9B6B4A]">Could not load reading history.</p>
+            ) : libraryTab === 'reading' ? (
+              reading.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-3 py-8 text-center">
+                  <BookOpen className="h-10 w-10 text-[#C9952A]" aria-hidden />
+                  <p className="text-sm font-semibold text-[#3D2314]">No books in progress</p>
+                  <p className="max-w-xs text-xs text-[#9B6B4A]">
+                    Open a book and tap Start Reading — your progress will appear here.
+                  </p>
+                  <Link
+                    to="/library"
+                    className="mt-1 rounded-full bg-[#8B2635] px-4 py-2 text-xs font-bold text-[#FEF8EE] no-underline"
+                  >
+                    Browse catalog
+                  </Link>
+                </div>
+              ) : (
+                <ul className="space-y-2 pr-1">
+                  {reading.map((b) => (
+                    <li key={b.bookId}>
+                      <Link
+                        to={`/read/${b.bookId}/chapter/${b.currentChapter}`}
+                        onClick={() => handleResume(b.bookId, b.currentChapter, b.currentPage)}
+                        className="flex items-center gap-3 rounded-xl border border-transparent bg-[#FDF0D5]/35 px-2.5 py-2.5 transition hover:border-[#E8C98A] hover:bg-[#FDF0D5]"
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <img src={b.coverImageUrl} alt="" className="h-16 w-12 shrink-0 rounded-md object-cover shadow-md" />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold text-[#3D2314]">{b.title}</div>
+                          <div className="mt-0.5 text-xs text-[#9B6B4A]">
+                            Chapter {b.currentChapter} · {b.currentChapterTitle}
+                          </div>
+                          <div className="mt-1 text-[11px] font-semibold text-[#8B2635]">
+                            Page {b.currentPage} · Last read {new Date(b.lastReadAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#8B2635] px-3 py-1 text-xs font-bold text-[#FEF8EE]">
+                          <BookOpen className="h-3.5 w-3.5" />
+                          Resume
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : finished.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-2 py-12 text-center">
+                <CheckCircle2 className="h-10 w-10 text-[#4A7A3D]" aria-hidden />
+                <p className="text-sm font-semibold text-[#3D2314]">No finished books yet</p>
+                <p className="text-xs text-[#9B6B4A]">Complete a book to see it here.</p>
+              </div>
             ) : (
               <ul className="space-y-2 pr-1">
                 {finished.map((b) => (
-                  <li key={b.id}>
+                  <li key={b.bookId}>
                     <Link
                       to={`/books/${b.slug}`}
                       className="flex items-center gap-3 rounded-xl border border-transparent bg-[#FDF0D5]/35 px-2.5 py-2.5 transition hover:border-[#E8C98A] hover:bg-[#FDF0D5]"
                       style={{ textDecoration: 'none' }}
                     >
-                      <img src={b.coverImage} alt="" className="h-16 w-12 shrink-0 rounded-md object-cover shadow-md" />
+                      <img src={b.coverImageUrl} alt="" className="h-16 w-12 shrink-0 rounded-md object-cover shadow-md" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-semibold text-[#3D2314]">{b.title}</div>
                         <div className="mt-0.5 text-xs text-[#9B6B4A]">{b.author}</div>
+                        {b.completedAt ? (
+                          <div className="mt-1 text-[11px] text-[#4A7A3D]">
+                            Finished {new Date(b.completedAt).toLocaleDateString()}
+                          </div>
+                        ) : null}
                       </div>
-                      <span className="hidden shrink-0 text-xs font-semibold text-[#8B2635] sm:inline">View</span>
+                      <span className="hidden shrink-0 text-xs font-semibold text-[#8B2635] sm:inline">Open book</span>
                     </Link>
                   </li>
                 ))}
@@ -152,22 +194,20 @@ export default function AccountPage() {
             <div className="rounded-xl border border-[#E8C98A]/70 bg-[#FDF0D5]/60 p-4 text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Avg rating read</p>
               <p className="mt-1 text-lg font-bold text-[#3D2314]">
-                {finished.length ? (finished.reduce((sum, b) => sum + b.rating, 0) / finished.length).toFixed(1) : '0.0'}
+                {stats?.averageRatingRead ? stats.averageRatingRead.toFixed(1) : '0.0'}
               </p>
             </div>
             <div className="rounded-xl border border-[#E8C98A]/70 bg-[#FDF0D5]/60 p-4 text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Top genre</p>
-              <p className="mt-1 text-lg font-bold text-[#3D2314]">{finished[0]?.genre ?? '—'}</p>
+              <p className="mt-1 text-lg font-bold text-[#3D2314]">{stats?.topGenre ?? '—'}</p>
             </div>
             <div className="rounded-xl border border-[#E8C98A]/70 bg-[#FDF0D5]/60 p-4 text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Books in progress</p>
-              <p className="mt-1 text-lg font-bold text-[#3D2314]">{reading.length}</p>
+              <p className="mt-1 text-lg font-bold text-[#3D2314]">{stats?.currentlyReadingCount ?? 0}</p>
             </div>
             <div className="rounded-xl border border-[#E8C98A]/70 bg-[#FDF0D5]/60 p-4 text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Total chapters</p>
-              <p className="mt-1 text-lg font-bold text-[#3D2314]">
-                {finished.reduce((sum, b) => sum + b.chapters.length, 0) + reading.reduce((sum, b) => sum + b.chapters.length, 0)}
-              </p>
+              <p className="mt-1 text-lg font-bold text-[#3D2314]">{stats?.totalChaptersRead ?? 0}</p>
             </div>
           </div>
         </section>

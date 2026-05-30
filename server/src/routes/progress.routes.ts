@@ -4,7 +4,8 @@ import { authMiddleware } from '../middleware/auth.middleware'
 
 const router = Router()
 
+router.get('/me', authMiddleware, progressController.getMyLibrary)
 router.post('/', authMiddleware, progressController.saveProgress)
-router.get('/:bookId', authMiddleware, progressController.getProgress)
+router.get('/book/:bookId', authMiddleware, progressController.getProgress)
 
 export default router

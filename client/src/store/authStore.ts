@@ -32,7 +32,7 @@ interface AuthState {
 function readInitialAuth(): Pick<AuthState, 'user' | 'token' | 'isAuthenticated'> {
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('pictoria_token') : null
 
-  // Drop legacy mock dev session from UI-only auth testing.
+  // Clear stale tokens from earlier dev-only auth experiments.
   if (token === 'dev-dummy-token' || token?.startsWith('mock-jwt-')) {
     localStorage.removeItem('pictoria_token')
     persistUser(null)

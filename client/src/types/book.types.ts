@@ -1,22 +1,53 @@
+export type BookStatus = 'Published' | 'Draft' | 'Hidden' | 'Archived'
+
+export type BookAccessType = 'free' | 'registered' | 'premium'
+
 export interface Book {
-  _id: string
-  title: string
+  id: string
   slug: string
+  title: string
+  author: string
+  genre: string
+  coverImage: string
+  description: string
+  longDescription: string
+  rating: number
+  pages: number
+  year: number
+  tags: string[]
+  chapters: string[]
+  status: BookStatus
+  accessType: BookAccessType
+  featured?: boolean
+  isNew?: boolean
+}
+
+export interface BookChapterMeta {
+  chapterNumber: number
+  title: string
+  totalPages: number
+}
+
+export type ApiBookRecord = {
+  _id: string
+  slug: string
+  title: string
   author: string
   description: string
+  longDescription?: string
   coverImageUrl: string
   genres: string[]
   tags: string[]
-  language: string
-  totalChapters: number
-  freeChapterLimit: number
-  accessType: 'free' | 'registered' | 'premium'
-  status: 'draft' | 'published' | 'hidden' | 'archived'
-  stats: {
-    totalReads: number
-    averageRating: number
-    totalReviews: number
+  publicationYear?: number
+  pageCount?: number
+  accessType: BookAccessType
+  status: string
+  featured?: boolean
+  newArrival?: boolean
+  totalChapters?: number
+  createdAt?: string
+  stats?: {
+    averageRating?: number
   }
-  createdAt: string
-  updatedAt: string
+  chapters?: BookChapterMeta[]
 }

@@ -6,6 +6,7 @@ import { uploadSingle } from '../middleware/upload.middleware'
 
 const router = Router()
 
+router.get('/catalog-stats', bookController.getCatalogStats)
 router.get('/', bookController.getAllBooks)
 router.get('/:slug', bookController.getBookBySlug)
 router.post(

@@ -5,6 +5,8 @@ export interface IReadingProgress extends Document {
   bookId: Types.ObjectId
   currentChapter: number
   currentPage: number
+  /** Denormalized for fast library reads — updated when chapter changes. */
+  currentChapterTitle?: string
   chaptersRead: number[]
   startedAt: Date
   lastReadAt: Date
@@ -20,6 +22,7 @@ const ReadingProgressSchema = new Schema<IReadingProgress>(
     bookId: { type: Schema.Types.ObjectId, ref: 'Book', required: true },
     currentChapter: { type: Number, default: 1 },
     currentPage: { type: Number, default: 1 },
+    currentChapterTitle: { type: String },
     chaptersRead: { type: [Number], default: [] },
     startedAt: { type: Date, default: Date.now },
     lastReadAt: { type: Date, default: Date.now },
@@ -30,5 +33,7 @@ const ReadingProgressSchema = new Schema<IReadingProgress>(
 )
 
 ReadingProgressSchema.index({ userId: 1, bookId: 1 }, { unique: true })
+ReadingProgressSchema.index({ userId: 1, lastReadAt: -1 })
+ReadingProgressSchema.index({ userId: 1, completed: 1, lastReadAt: -1 })
 
 export const ReadingProgress = mongoose.model<IReadingProgress>('ReadingProgress', ReadingProgressSchema)

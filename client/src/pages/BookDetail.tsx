@@ -12,12 +12,14 @@ import {
   List,
   CheckCircle2,
 } from 'lucide-react'
-import { getBookBySlug, books } from '../data/mockBooks'
+import { useBookBySlug, useAllPublishedBooksForSimilar } from '../hooks/useBooks'
+import { useBookReadingProgress, trackReading } from '../hooks/useReadingProgress'
+import type { SaveProgressPayload } from '../types/progress.types'
 import BookCard from '../components/books/BookCard'
 import { BooksIllustration } from '../components/illustrations/BooksIllustration'
 import Navbar from '../components/common/Navbar'
 import Footer from '../components/common/Footer'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 
 const genreColors: Record<string, { bg: string; text: string }> = {
   Fantasy: { bg: "#E8D5F5", text: "#6B2D8B" },
@@ -42,13 +44,66 @@ export default function BookDetail() {
   const [liked, setLiked] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'chapters' | 'similar'>('overview')
 
-  const book = getBookBySlug(slug ?? '')
-  const completedChapterIndexes = useMemo(() => new Set([0, 1]), [])
+  const { data: book, isLoading, isError } = useBookBySlug(slug)
+  const { data: allBooks = [] } = useAllPublishedBooksForSimilar()
+  const { data: progress } = useBookReadingProgress(book?.id)
+
+  const hasProgress = Boolean(progress?._id)
+  const resumeChapter = progress?.currentChapter ?? 1
+  const isCompleted = Boolean(progress?.completed)
+
+  const completedChapterIndexes = useMemo(() => {
+    if (!progress?.chaptersRead?.length) return new Set<number>()
+    return new Set(progress.chaptersRead.map((n) => n - 1))
+  }, [progress?.chaptersRead])
+
+  const openChapter = useCallback(
+    (chapterNumber: number, action?: SaveProgressPayload['action']) => {
+      if (!book) return
+
+      const resumeSameChapter =
+        hasProgress && progress!.currentChapter === chapterNumber && progress!.currentPage > 1
+
+      trackReading({
+        bookId: book.id,
+        currentChapter: chapterNumber,
+        currentPage: resumeSameChapter ? progress!.currentPage : 1,
+        action:
+          action ??
+          (!hasProgress && chapterNumber === 1
+            ? 'start_reading'
+            : hasProgress
+              ? 'continue_reading'
+              : 'chapter_opened'),
+      })
+      navigate(`/read/${book.id}/chapter/${chapterNumber}`)
+    },
+    [book, hasProgress, progress, navigate],
+  )
+
+  const primaryCtaLabel =
+    isCompleted ? 'Read again' : hasProgress ? 'Continue reading' : 'Start Reading'
+
   const { pagesPerChapter, minutes: minutesPerChapter } = book
     ? chapterReadMetrics(book.pages, book.chapters.length)
     : { pagesPerChapter: 0, minutes: 0 }
 
-  if (!book) {
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#FDF0D5]">
+        <Navbar />
+        <main
+          className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16"
+          style={{ fontFamily: "'Nunito', sans-serif" }}
+        >
+          <p className="text-sm text-[#9B6B4A]">Loading book…</p>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (isError || !book) {
     return (
       <div className="flex min-h-screen flex-col bg-[#FDF0D5]">
         <Navbar />
@@ -68,8 +123,8 @@ export default function BookDetail() {
   }
 
   const genreColor = genreColors[book.genre] || { bg: "#F5E8D5", text: "#8B5A1A" };
-  const similarBooks = books.filter((b) => b.id !== book.id && b.genre === book.genre).slice(0, 4);
-  const otherBooks = books.filter((b) => b.id !== book.id).slice(0, 4);
+  const similarBooks = allBooks.filter((b) => b.id !== book.id && b.genre === book.genre).slice(0, 4);
+  const otherBooks = allBooks.filter((b) => b.id !== book.id).slice(0, 4);
   const displaySimilar = similarBooks.length >= 2 ? similarBooks : otherBooks;
 
   return (
@@ -389,7 +444,12 @@ export default function BookDetail() {
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               <button
                 type="button"
-                onClick={() => navigate(`/read/${book.id}/chapter/1`)}
+                onClick={() =>
+                  openChapter(
+                    resumeChapter,
+                    hasProgress ? 'continue_reading' : 'start_reading',
+                  )
+                }
                 style={{
                   padding: "14px 36px",
                   background: "linear-gradient(135deg, #8B2635 0%, #A83040 100%)",
@@ -414,7 +474,7 @@ export default function BookDetail() {
                 }}
               >
                 <Play size={15} fill="#FEF8EE" />
-                Start Reading
+                {primaryCtaLabel}
               </button>
               <button
                 style={{
@@ -565,7 +625,7 @@ export default function BookDetail() {
                       color: "#3D2314",
                     }}
                   >
-                    Chapter 1: {book.chapters[0]}
+                    Chapter {resumeChapter}: {book.chapters[resumeChapter - 1] ?? book.chapters[0]}
                   </span>
                 </div>
                 <p
@@ -585,7 +645,7 @@ export default function BookDetail() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => navigate(`/read/${book.id}/chapter/1`)}
+                  onClick={() => openChapter(resumeChapter, 'continue_reading')}
                   style={{
                     padding: "10px 24px",
                     background: "linear-gradient(135deg, #8B2635 0%, #A83040 100%)",
@@ -805,7 +865,7 @@ export default function BookDetail() {
               {book.chapters.map((ch, i) => (
                 <div
                   key={i}
-                  onClick={() => navigate(`/read/${book.id}/chapter/${i + 1}`)}
+                  onClick={() => openChapter(i + 1, 'chapter_opened')}
                   style={{
                     display: "flex",
                     alignItems: "center",

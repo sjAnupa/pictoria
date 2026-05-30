@@ -6,6 +6,7 @@ import { uploadMultiple } from '../middleware/upload.middleware'
 
 const router = Router()
 
+router.get('/book/:bookId/chapter/:chapterNumber', chapterController.getChapterForReading)
 router.get('/book/:bookId', chapterController.getChaptersByBook)
 router.get('/:id', chapterController.getChapterById)
 router.post(

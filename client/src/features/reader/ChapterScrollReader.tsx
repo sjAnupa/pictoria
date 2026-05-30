@@ -1,6 +1,6 @@
+import { useCallback, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
-import { DEMO_CHAPTER_1_PAGE_URLS } from '../../config/chapterAssets'
 
 type ChapterScrollReaderProps = {
   bookTitle?: string
@@ -8,6 +8,8 @@ type ChapterScrollReaderProps = {
   /** Book detail route (e.g. `/books/my-book-slug`). */
   backTo: string
   pageUrls?: string[]
+  /** When set, reports which page is most visible while scrolling. */
+  onPageVisible?: (pageNumber: number, totalPages: number) => void
 }
 
 /**
@@ -17,9 +19,62 @@ const ChapterScrollReader = ({
   bookTitle,
   chapterLabel,
   backTo,
-  pageUrls = DEMO_CHAPTER_1_PAGE_URLS,
+  pageUrls = [],
+  onPageVisible,
 }: ChapterScrollReaderProps) => {
-  const pages = pageUrls.length ? pageUrls : DEMO_CHAPTER_1_PAGE_URLS
+  const pages = pageUrls.length ? pageUrls : []
+  const figureRefs = useRef<(HTMLElement | null)[]>([])
+  const onPageVisibleRef = useRef(onPageVisible)
+
+  useEffect(() => {
+    onPageVisibleRef.current = onPageVisible
+  }, [onPageVisible])
+
+  const setFigureRef = useCallback((index: number) => (el: HTMLElement | null) => {
+    figureRefs.current[index] = el
+  }, [])
+
+  useEffect(() => {
+    if (!pages.length || !onPageVisibleRef.current) return
+
+    const visible = new Map<number, number>()
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const index = figureRefs.current.findIndex((el) => el === entry.target)
+          if (index < 0) continue
+          if (entry.isIntersecting) {
+            visible.set(index, entry.intersectionRatio)
+          } else {
+            visible.delete(index)
+          }
+        }
+
+        if (visible.size === 0) return
+
+        let bestIndex = 0
+        let bestRatio = 0
+        for (const [index, ratio] of visible) {
+          if (ratio > bestRatio) {
+            bestRatio = ratio
+            bestIndex = index
+          }
+        }
+
+        onPageVisibleRef.current?.(bestIndex + 1, pages.length)
+      },
+      { threshold: [0.25, 0.5, 0.75] },
+    )
+
+    figureRefs.current.forEach((el) => {
+      if (el) observer.observe(el)
+    })
+
+    onPageVisibleRef.current(1, pages.length)
+
+    return () => observer.disconnect()
+  }, [pages.length])
 
   return (
     <div className="w-full bg-[#E8D4A8]" style={{ fontFamily: "'Nunito', sans-serif" }}>
@@ -45,19 +100,27 @@ const ChapterScrollReader = ({
       </div>
 
       <div className="mx-auto max-w-[min(100%,720px)] px-2 py-3 sm:px-4 sm:py-5">
-        <div className="flex flex-col gap-0 sm:gap-1">
-          {pages.map((src, index) => (
-            <figure key={src} className="m-0 overflow-hidden bg-transparent">
-              <img
-                src={src}
-                alt={bookTitle ? `${bookTitle} — page ${index + 1}` : `Page ${index + 1}`}
-                className="mx-auto block h-auto w-full object-contain"
-                loading={index < 2 ? 'eager' : 'lazy'}
-                decoding="async"
-              />
-            </figure>
-          ))}
-        </div>
+        {pages.length === 0 ? (
+          <p className="py-16 text-center text-sm text-[#6B4226]">No pages available for this chapter.</p>
+        ) : (
+          <div className="flex flex-col gap-0 sm:gap-1">
+            {pages.map((src, index) => (
+              <figure
+                key={src}
+                ref={setFigureRef(index)}
+                className="m-0 overflow-hidden bg-transparent"
+              >
+                <img
+                  src={src}
+                  alt={bookTitle ? `${bookTitle} — page ${index + 1}` : `Page ${index + 1}`}
+                  className="mx-auto block h-auto w-full object-contain"
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+              </figure>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

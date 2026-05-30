@@ -10,10 +10,25 @@ import {
   findChaptersByBookId,
   updateChapterRecord,
 } from '../services/chapter.service'
+import { findChapterForReading } from '../services/book.service'
 
 export const getChaptersByBook = async (req: Request, res: Response): Promise<Response> => {
   const chapters = await findChaptersByBookId(paramString(req.params.bookId))
   return successResponse(res, chapters)
+}
+
+export const getChapterForReading = async (req: Request, res: Response): Promise<Response> => {
+  const chapterNumber = Number(req.params.chapterNumber)
+  if (!Number.isFinite(chapterNumber) || chapterNumber < 1) {
+    return errorResponse(res, 'Invalid chapter number', 400)
+  }
+
+  const payload = await findChapterForReading(paramString(req.params.bookId), chapterNumber)
+  if (!payload) {
+    return errorResponse(res, 'Chapter not found', 404)
+  }
+
+  return successResponse(res, payload)
 }
 
 export const getChapterById = async (req: Request, res: Response): Promise<Response> => {

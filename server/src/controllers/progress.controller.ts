@@ -1,15 +1,22 @@
 import { Request, Response } from 'express'
 import { z } from 'zod'
 import { Types } from 'mongoose'
-import { ReadingProgress } from '../models/ReadingProgress.model'
-import { Book } from '../models/Book.model'
 import { successResponse, errorResponse } from '../utils/apiResponse'
 import { paramString } from '../utils/paramString'
+import {
+  getBookProgress,
+  getUserLibrary,
+  saveReadingProgress,
+} from '../services/progress.service'
 
 const progressSchema = z.object({
   bookId: z.string().min(1),
   currentChapter: z.coerce.number().int().positive(),
   currentPage: z.coerce.number().int().positive(),
+  totalPagesInChapter: z.coerce.number().int().positive().optional(),
+  action: z
+    .enum(['start_reading', 'continue_reading', 'chapter_opened', 'page_progress'])
+    .optional(),
 })
 
 export const saveProgress = async (req: Request, res: Response): Promise<Response> => {
@@ -22,42 +29,28 @@ export const saveProgress = async (req: Request, res: Response): Promise<Respons
     return errorResponse(res, 'Invalid book id', 400)
   }
 
-  const book = await Book.findById(parsed.data.bookId)
-  if (!book) {
-    return errorResponse(res, 'Book not found', 404)
+  try {
+    const progress = await saveReadingProgress(String(req.user!._id), parsed.data)
+    return successResponse(res, progress, 200, 'Progress saved')
+  } catch (err) {
+    if (err instanceof Error && err.message === 'BOOK_NOT_FOUND') {
+      return errorResponse(res, 'Book not found', 404)
+    }
+    throw err
   }
+}
 
-  const completed =
-    book.totalChapters > 0 && parsed.data.currentChapter >= book.totalChapters
-
-  const progress = await ReadingProgress.findOneAndUpdate(
-    { userId: req.user!._id, bookId: parsed.data.bookId },
-    {
-      $set: {
-        currentChapter: parsed.data.currentChapter,
-        currentPage: parsed.data.currentPage,
-        lastReadAt: new Date(),
-        completed,
-        ...(completed ? { completedAt: new Date() } : {}),
-      },
-      $addToSet: { chaptersRead: parsed.data.currentChapter },
-      $setOnInsert: { startedAt: new Date() },
-    },
-    { upsert: true, new: true },
-  )
-
-  return successResponse(res, progress)
+export const getMyLibrary = async (req: Request, res: Response): Promise<Response> => {
+  const library = await getUserLibrary(String(req.user!._id))
+  return successResponse(res, library)
 }
 
 export const getProgress = async (req: Request, res: Response): Promise<Response> => {
-  if (!Types.ObjectId.isValid(paramString(req.params.bookId))) {
+  const bookId = paramString(req.params.bookId)
+  if (!Types.ObjectId.isValid(bookId)) {
     return errorResponse(res, 'Invalid book id', 400)
   }
 
-  const progress = await ReadingProgress.findOne({
-    userId: req.user!._id,
-    bookId: paramString(req.params.bookId),
-  })
-
+  const progress = await getBookProgress(String(req.user!._id), bookId)
   return successResponse(res, progress ?? {})
 }

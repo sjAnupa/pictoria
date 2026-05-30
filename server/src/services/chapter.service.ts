@@ -1,7 +1,7 @@
 import { Types } from 'mongoose'
 import { Chapter, IChapter } from '../models/Chapter.model'
 import { Book, IBook } from '../models/Book.model'
-import { deleteImageFromR2, uploadImageToR2 } from './r2.service'
+import { deleteStoredImage, uploadChapterPage } from './storage.service'
 import { CreateChapterInput, UpdateChapterInput } from '../validators/chapter.validator'
 
 function padPageIndex(index: number): string {
@@ -36,11 +36,15 @@ export async function uploadChapterPages(
   bookSlug: string,
   chapterNumber: number,
 ): Promise<string[]> {
-  const folder = `books/${bookSlug}/ch${chapterNumber}`
   const urls: string[] = []
 
   for (let i = 0; i < files.length; i += 1) {
-    const url = await uploadImageToR2(files[i], folder, `page-${padPageIndex(i + 1)}`)
+    const url = await uploadChapterPage(
+      files[i],
+      bookSlug,
+      chapterNumber,
+      `page-${padPageIndex(i + 1)}`,
+    )
     urls.push(url)
   }
 
@@ -90,7 +94,7 @@ export async function updateChapterRecord(
 
   if (files && files.length > 0) {
     for (const url of chapter.pageImageUrls) {
-      await deleteImageFromR2(url)
+      await deleteStoredImage(url)
     }
     chapter.pageImageUrls = await uploadChapterPages(files, book.slug, chapter.chapterNumber)
     chapter.totalPages = chapter.pageImageUrls.length
@@ -104,7 +108,7 @@ export async function deleteChapterRecord(chapter: IChapter) {
   const book = await Book.findById(chapter.bookId)
 
   for (const url of chapter.pageImageUrls) {
-    await deleteImageFromR2(url)
+    await deleteStoredImage(url)
   }
 
   await chapter.deleteOne()

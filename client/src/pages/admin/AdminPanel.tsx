@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, type CSSProperties, type ReactNode } from "react";
+import { useState, useRef, useCallback, useEffect, type CSSProperties, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -53,8 +53,11 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import type { BookStatus } from '../../data/mockBooks'
+import type { BookStatus } from '../../types/book.types'
 import GenresAndTagsView from './views/GenresAndTagsView'
+import { useAdminBookCount, useAdminBookMutations, useAdminBooks, useAdminDashboard } from '../../hooks/useAdminBooks'
+import type { AdminBookRow } from '../../utils/mapAdminBook'
+import { fetchCategories } from '../../services/categoryService'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,20 +92,9 @@ interface BookFormData {
   chapters: Chapter[];
 }
 
-interface AdminBook {
-  id: number;
-  title: string;
-  author: string;
-  coverGradient: string;
-  coverLabel: string;
-  genre: string;
-  chapters: number;
-  status: BookStatus;
-  accessType: string;
-  dateAdded: string;
-}
+interface AdminBook extends AdminBookRow {}
 
-// ─── Constants & Mock Data ─────────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<BookStatus, { bg: string; text: string; dot: string; label: string }> = {
   Published: { bg: "#DCFCE7", text: "#15803D", dot: "#16A34A", label: "Published" },
@@ -110,59 +102,6 @@ const STATUS_CONFIG: Record<BookStatus, { bg: string; text: string; dot: string;
   Hidden:    { bg: "#FFEDD5", text: "#C2410C", dot: "#F97316", label: "Hidden"    },
   Archived:  { bg: "#FEE2E2", text: "#B91C1C", dot: "#EF4444", label: "Archived"  },
 };
-
-const ALL_GENRES = [
-  "Fantasy", "Mystery", "Adventure", "Romance", "Sci-Fi",
-  "Horror", "Thriller", "Children's", "Humor", "Historical",
-];
-
-const TABLE_BOOKS: AdminBook[] = [
-  { id: 1, title: "The Enchanted Garden",    author: "Eleanor Whitmore",  coverGradient: "linear-gradient(145deg,#7C3AED,#4F46E5)", coverLabel: "TEG", genre: "Fantasy",    chapters: 8,  status: "Published", accessType: "free",       dateAdded: "Mar 12 2026" },
-  { id: 2, title: "Sailing to Tomorrow",     author: "James R. Caldwell", coverGradient: "linear-gradient(145deg,#0284C7,#0EA5E9)", coverLabel: "STT", genre: "Adventure",  chapters: 8,  status: "Published", accessType: "free",       dateAdded: "Mar 18 2026" },
-  { id: 3, title: "The Whispering Woods",    author: "Clara Song",        coverGradient: "linear-gradient(145deg,#059669,#10B981)", coverLabel: "TWW", genre: "Mystery",    chapters: 8,  status: "Published", accessType: "registered", dateAdded: "Mar 22 2026" },
-  { id: 4, title: "Castle of Starlight",     author: "Theo Brightman",    coverGradient: "linear-gradient(145deg,#D97706,#F59E0B)", coverLabel: "COS", genre: "Fantasy",    chapters: 8,  status: "Published", accessType: "premium",    dateAdded: "Mar 25 2026" },
-  { id: 5, title: "Cherry Blossom Letters",  author: "Yuki Tanaka",       coverGradient: "linear-gradient(145deg,#DB2777,#EC4899)", coverLabel: "CBL", genre: "Romance",    chapters: 8,  status: "Published", accessType: "free",       dateAdded: "Mar 27 2026" },
-  { id: 6, title: "The Little Lighthouse",   author: "Anne Marsh",        coverGradient: "linear-gradient(145deg,#2563EB,#3B82F6)", coverLabel: "TLL", genre: "Children's", chapters: 4,  status: "Draft",     accessType: "free",       dateAdded: "Mar 28 2026" },
-  { id: 7, title: "A Dragon's Diary",        author: "Felix Dorn",        coverGradient: "linear-gradient(145deg,#DC2626,#EF4444)", coverLabel: "ADD", genre: "Humor",      chapters: 7,  status: "Hidden",    accessType: "registered", dateAdded: "Apr 01 2026" },
-  { id: 8, title: "Midnight in the Museum",  author: "Isabelle Dumont",   coverGradient: "linear-gradient(145deg,#1E293B,#334155)", coverLabel: "MIM", genre: "Mystery",    chapters: 8,  status: "Archived",  accessType: "premium",    dateAdded: "Apr 05 2026" },
-];
-
-// Dashboard chart data
-const DAILY_READS = [
-  { date: "Mar 30", reads: 124 }, { date: "Mar 31", reads: 189 },
-  { date: "Apr 1",  reads: 215 }, { date: "Apr 2",  reads: 178 },
-  { date: "Apr 3",  reads: 267 }, { date: "Apr 4",  reads: 312 },
-  { date: "Apr 5",  reads: 298 }, { date: "Apr 6",  reads: 187 },
-  { date: "Apr 7",  reads: 234 }, { date: "Apr 8",  reads: 289 },
-  { date: "Apr 9",  reads: 341 }, { date: "Apr 10", reads: 398 },
-  { date: "Apr 11", reads: 445 }, { date: "Apr 12", reads: 372 },
-];
-
-const GENRE_DATA = [
-  { name: "Fantasy",   value: 32, color: "#7C3AED" },
-  { name: "Mystery",   value: 24, color: "#F59E0B" },
-  { name: "Adventure", value: 18, color: "#059669" },
-  { name: "Romance",   value: 14, color: "#EC4899" },
-  { name: "Sci-Fi",    value:  8, color: "#0EA5E9" },
-  { name: "Others",    value:  4, color: "#9CA3AF" },
-];
-
-const MOST_READ_BOOKS = [
-  { title: "The Enchanted Garden",   reads: 3241 },
-  { title: "Cherry Blossom Letters", reads: 2876 },
-  { title: "The Whispering Woods",   reads: 2543 },
-  { title: "A Dragon's Diary",       reads: 2187 },
-  { title: "Sailing to Tomorrow",    reads: 1923 },
-  { title: "Castle of Starlight",    reads: 1654 },
-];
-
-const TOP_READERS = [
-  { name: "Sarah Chen",     initials: "SC", books: 24, hours: 87,  status: "Active" },
-  { name: "Mike Rodriguez", initials: "MR", books: 19, hours: 62,  status: "Active" },
-  { name: "Aisha Patel",    initials: "AP", books: 17, hours: 58,  status: "Active" },
-  { name: "Tom Williams",   initials: "TW", books: 15, hours: 51,  status: "Inactive" },
-  { name: "Emma Laurent",   initials: "EL", books: 14, hours: 47,  status: "Active" },
-];
 
 // ─── Shared UI Components ──────────────────────────────────────────────────────
 
@@ -263,6 +202,14 @@ function StyledSelect({ value, onChange, options }: { value: string; onChange: (
 // ─── Dashboard View ────────────────────────────────────────────────────────────
 
 function DashboardView() {
+  const { data, isLoading, isError } = useAdminDashboard()
+
+  const DAILY_READS = data?.dailyReads ?? []
+  const GENRE_DATA = data?.genreDistribution ?? []
+  const MOST_READ_BOOKS = data?.mostReadBooks ?? []
+  const TOP_READERS = data?.topReaders ?? []
+  const totals = data?.totals
+
   type AreaTooltipProps = {
     active?: boolean
     payload?: Array<{ value?: number }>
@@ -333,12 +280,18 @@ function DashboardView() {
 
   return (
     <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
+      {isLoading ? (
+        <p style={{ fontSize: 13, color: "#6B7280" }}>Loading dashboard…</p>
+      ) : isError ? (
+        <p style={{ fontSize: 13, color: "#B91C1C" }}>Could not load dashboard data.</p>
+      ) : (
+      <>
       {/* Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard icon={<BookOpen size={20} />}    label="Total Books"     value="42"     sub="+3 this month"    color="#4F46E5" />
-        <StatCard icon={<Users size={20} />}        label="Registered Users" value="1,284" sub="+127 this month"  color="#059669" />
-        <StatCard icon={<TrendingUp size={20} />}  label="Total Reads"     value="18,471" sub="+2,341 this month" color="#D97706" />
-        <StatCard icon={<Eye size={20} />}         label="Active Today"    value="347"    sub="vs 289 yesterday"  color="#DB2777" />
+        <StatCard icon={<BookOpen size={20} />}    label="Total Books"     value={String(totals?.books ?? 0)}     sub="In catalog"    color="#4F46E5" />
+        <StatCard icon={<Users size={20} />}        label="Registered Users" value={(totals?.users ?? 0).toLocaleString()} sub="All accounts"  color="#059669" />
+        <StatCard icon={<TrendingUp size={20} />}  label="Total Reads"     value={(totals?.totalReads ?? 0).toLocaleString()} sub="Start events" color="#D97706" />
+        <StatCard icon={<Eye size={20} />}         label="Active Today"    value={String(totals?.activeToday ?? 0)}    sub="Readers today"  color="#DB2777" />
       </div>
 
       {/* Row 2: Area chart + Pie chart */}
@@ -411,7 +364,7 @@ function DashboardView() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF" }}>{user.books} books · {user.hours}h</div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF" }}>{user.books} books</div>
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: user.status === "Active" ? "#DCFCE7" : "#F3F4F6", color: user.status === "Active" ? "#15803D" : "#6B7280" }}>
                   {user.status}
@@ -421,6 +374,8 @@ function DashboardView() {
           </div>
         </SectionCard>
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -430,10 +385,12 @@ function DashboardView() {
 function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminBook) => void }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [books, setBooks] = useState<AdminBook[]>(TABLE_BOOKS);
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-  const [menuOpen, setMenuOpen] = useState<number | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const { data: books = [], isLoading, isError } = useAdminBooks();
+  const { toggleStatus, remove } = useAdminBookMutations();
 
   const filtered = books.filter((b) => {
     const matchSearch = b.title.toLowerCase().includes(search.toLowerCase()) || b.author.toLowerCase().includes(search.toLowerCase());
@@ -441,16 +398,37 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
     return matchSearch && matchStatus;
   });
 
-  const handleDelete = (id: number) => {
-    setBooks(books.filter((b) => b.id !== id));
-    setDeleteConfirm(null);
-    setMenuOpen(null);
+  const handleDelete = (id: string) => {
+    remove.mutate(id, {
+      onSuccess: () => {
+        setDeleteConfirm(null);
+        setMenuOpen(null);
+      },
+    });
   };
 
-  const handleToggleStatus = (id: number) => {
-    setBooks(books.map((b) => b.id === id ? { ...b, status: b.status === "Published" ? "Hidden" : "Published" } : b));
-    setMenuOpen(null);
+  const handleToggleStatus = (id: string, currentStatus: BookStatus) => {
+    toggleStatus.mutate(
+      { bookId: id, currentStatus },
+      { onSuccess: () => setMenuOpen(null) },
+    );
   };
+
+  if (isLoading) {
+    return (
+      <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+        <p style={{ fontSize: 13, color: "#6B7280" }}>Loading books…</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+        <p style={{ fontSize: 13, color: "#B91C1C" }}>Could not load books.</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
@@ -503,9 +481,12 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
                 {/* Book */}
                 <td style={{ padding: "12px 14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                    <div style={{ width: 36, height: 50, borderRadius: 4, background: book.coverGradient, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.8)", fontSize: 8, fontWeight: 700, letterSpacing: "0.03em", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", flexShrink: 0, position: "relative", overflow: "hidden" }}>
-                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "rgba(0,0,0,0.2)" }} />
-                      {book.coverLabel}
+                    <div style={{ width: 36, height: 50, borderRadius: 4, background: "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", flexShrink: 0, position: "relative", overflow: "hidden" }}>
+                      {book.coverImageUrl ? (
+                        <img src={book.coverImageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <BookOpen size={14} color="#9CA3AF" />
+                      )}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{book.title}</div>
@@ -553,7 +534,7 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
                       </button>
                       {menuOpen === book.id && (
                         <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 20, background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", minWidth: 140, marginTop: 4, overflow: "hidden" }}>
-                          <button onClick={() => { handleToggleStatus(book.id); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, color: "#374151", fontFamily: "'Inter', sans-serif", textAlign: "left", transition: "background 0.1s" }}
+                          <button onClick={() => { handleToggleStatus(book.id, book.status); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, color: "#374151", fontFamily: "'Inter', sans-serif", textAlign: "left", transition: "background 0.1s" }}
                             onMouseEnter={(e) => e.currentTarget.style.background = "#F9FAFB"}
                             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                             <EyeOff size={12} /> {book.status === "Published" ? "Hide Book" : "Publish"}
@@ -619,12 +600,21 @@ function makeDefaultChapter(num: number): Chapter {
 function BookFormView({ editingBook, onBack }: { editingBook: AdminBook | null; onBack: () => void }) {
   const isEdit = editingBook !== null;
 
+  const { data: genreCategories = [] } = useQuery({
+    queryKey: ['categories', 'genre'],
+    queryFn: () => fetchCategories('genre'),
+  })
+  const genreOptions = genreCategories
+    .filter((c) => c.isActive)
+    .map((c) => ({ value: c.name, label: c.name }))
+  const defaultGenre = genreOptions[0]?.value ?? ''
+
   const [form, setForm] = useState<BookFormData>({
     title:           isEdit ? editingBook!.title  : "",
     author:          isEdit ? editingBook!.author : "",
     year:            isEdit ? "2024" : "",
     pages:           "",
-    genre:           isEdit ? editingBook!.genre  : "Fantasy",
+    genre:           isEdit ? editingBook!.genre  : defaultGenre,
     status:          isEdit ? editingBook!.status : "Draft",
     accessType:      isEdit ? (editingBook!.accessType as "free" | "registered" | "premium") : "free",
     tags:            "",
@@ -633,6 +623,12 @@ function BookFormView({ editingBook, onBack }: { editingBook: AdminBook | null; 
     coverPreview:    null,
     chapters:        [makeDefaultChapter(1)],
   });
+
+  useEffect(() => {
+    if (!isEdit && defaultGenre && !form.genre) {
+      setForm((f) => ({ ...f, genre: defaultGenre }))
+    }
+  }, [isEdit, defaultGenre, form.genre])
 
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -851,7 +847,13 @@ function BookFormView({ editingBook, onBack }: { editingBook: AdminBook | null; 
           <SectionCard title="Categorization">
             <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
               <FormField label="Genre" required>
-                <StyledSelect value={form.genre} onChange={(v) => setField("genre", v)} options={ALL_GENRES.map((g) => ({ value: g, label: g }))} />
+                {genreOptions.length === 0 ? (
+                  <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>
+                    No genres yet. Add genres under Genres &amp; tags first.
+                  </p>
+                ) : (
+                  <StyledSelect value={form.genre || defaultGenre} onChange={(v) => setField("genre", v)} options={genreOptions} />
+                )}
               </FormField>
               <FormField label="Tags" hint='Separate tags with commas, e.g. "magic, dragons, epic"'>
                 <StyledInput value={form.tags} onChange={(v) => setField("tags", v)} placeholder="magic, adventure, illustrated" />
@@ -1136,15 +1138,15 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
 // ─── Sidebar ───────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard",  icon: LayoutDashboard, badge: null },
-  { id: "books",     label: "Books",      icon: BookOpen,        badge: "42"  },
-  { id: "users",     label: "Users",      icon: Users,           badge: null },
-  { id: "genresTags", label: "Genres & tags", icon: Tags, badge: null },
+  { id: "dashboard", label: "Dashboard",  icon: LayoutDashboard },
+  { id: "books",     label: "Books",      icon: BookOpen },
+  { id: "users",     label: "Users",      icon: Users },
+  { id: "genresTags", label: "Genres & tags", icon: Tags },
 ] as const;
 
 type NavId = typeof NAV_ITEMS[number]["id"];
 
-function Sidebar({ active, onNav, userName, userRole }: { active: NavId; onNav: (id: NavId) => void; userName: string; userRole: string }) {
+function Sidebar({ active, onNav, userName, userRole, bookCount }: { active: NavId; onNav: (id: NavId) => void; userName: string; userRole: string; bookCount: number }) {
   const initial = userName.charAt(0).toUpperCase();
   return (
     <aside style={{ width: 224, flexShrink: 0, background: "#111827", display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
@@ -1172,9 +1174,9 @@ function Sidebar({ active, onNav, userName, userRole }: { active: NavId; onNav: 
               onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; } }}>
               <Icon size={15} />
               {item.label}
-              {item.badge && (
+              {item.id === "books" && bookCount > 0 && (
                 <span style={{ marginLeft: "auto", background: isActive ? "rgba(255,255,255,0.25)" : "rgba(79,70,229,0.2)", color: isActive ? "#fff" : "#818CF8", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 10 }}>
-                  {item.badge}
+                  {bookCount}
                 </span>
               )}
             </button>
@@ -1238,6 +1240,7 @@ export default function AdminPanel() {
   const [activeNav, setActiveNav] = useState<NavId>("dashboard");
   const [view, setView] = useState<AdminView>("dashboard");
   const [editingBook, setEditingBook] = useState<AdminBook | null>(null);
+  const bookCount = useAdminBookCount();
 
   const handleNav = (id: NavId) => {
     setActiveNav(id);
@@ -1267,7 +1270,7 @@ export default function AdminPanel() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: "'Inter', sans-serif", background: "#F9FAFB" }}>
-      <Sidebar active={activeNav} onNav={handleNav} userName={displayName} userRole={roleLabel} />
+      <Sidebar active={activeNav} onNav={handleNav} userName={displayName} userRole={roleLabel} bookCount={bookCount} />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {view !== "book-form" && <PageHeader view={view} userName={displayName} userRole={roleLabel} />}

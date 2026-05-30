@@ -2,9 +2,23 @@ import { Link } from 'react-router-dom'
 import { BookOpen, ChevronRight, Sparkles, TrendingUp, Star } from 'lucide-react'
 import { BooksIllustration } from '../illustrations/BooksIllustration'
 import BookCard from '../books/BookCard'
-import { featuredBooks, newBooks } from '../../data/mockBooks'
+import { useFeaturedBooks, useNewBooks } from '../../hooks/useBooks'
+import { useCatalogStats } from '../../hooks/useAdminBooks'
+
+function formatCatalogStat(count: number): string {
+  if (count >= 1000) {
+    const rounded = Math.floor(count / 100) / 10
+    return `${rounded % 1 === 0 ? Math.floor(count / 1000) : rounded}K+`
+  }
+  return count > 0 ? `${count}+` : '0'
+}
 
 export default function PictoriaHomeContent() {
+  const { data: featuredBooks = [], isLoading: featuredLoading } = useFeaturedBooks()
+  const { data: newBooks = [], isLoading: newLoading } = useNewBooks()
+  const { data: catalogStats } = useCatalogStats()
+  const heroSlug = featuredBooks[0]?.slug ?? 'the-enchanted-garden'
+
   return (
     <div
       style={{
@@ -135,7 +149,7 @@ export default function PictoriaHomeContent() {
             {/* CTA Buttons */}
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               <Link
-                to={`/books/${featuredBooks[0]?.slug ?? 'the-enchanted-garden'}`}
+                to={`/books/${heroSlug}`}
                 style={{ textDecoration: 'none' }}
               >
                 <button
@@ -212,9 +226,9 @@ export default function PictoriaHomeContent() {
               }}
             >
               {[
-                { num: "2,400+", label: "Illustrated Books" },
-                { num: "340+", label: "Authors" },
-                { num: "98K+", label: "Readers" },
+                { num: formatCatalogStat(catalogStats?.bookCount ?? 0), label: "Illustrated Books" },
+                { num: formatCatalogStat(catalogStats?.authorCount ?? 0), label: "Authors" },
+                { num: formatCatalogStat(catalogStats?.readerCount ?? 0), label: "Readers" },
               ].map((stat) => (
                 <div key={stat.label}>
                   <div
@@ -444,9 +458,15 @@ export default function PictoriaHomeContent() {
               gap: 24,
             }}
           >
-            {featuredBooks.map((book) => (
-              <BookCard key={book.id} book={book} />
-            ))}
+            {featuredLoading ? (
+              <p className="text-sm text-[#9B6B4A]">Loading featured reads…</p>
+            ) : featuredBooks.length === 0 ? (
+              <p className="text-sm text-[#9B6B4A]">No featured books yet.</p>
+            ) : (
+              featuredBooks.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -574,9 +594,15 @@ export default function PictoriaHomeContent() {
               gap: 24,
             }}
           >
-            {newBooks.map((book) => (
-              <BookCard key={book.id} book={book} />
-            ))}
+            {newLoading ? (
+              <p className="text-sm text-[#9B6B4A]">Loading new arrivals…</p>
+            ) : newBooks.length === 0 ? (
+              <p className="text-sm text-[#9B6B4A]">No new books yet.</p>
+            ) : (
+              newBooks.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))
+            )}
           </div>
         </div>
       </section>

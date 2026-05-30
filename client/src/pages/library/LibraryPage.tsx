@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import BookCard from '../../components/books/BookCard'
-import { books, type Book } from '../../data/mockBooks'
+import type { Book } from '../../types/book.types'
+import { usePublishedBooks } from '../../hooks/useBooks'
 import { Search, X, Library, ChevronDown } from 'lucide-react'
-
-const ALL_GENRES = [...new Set(books.map((b) => b.genre))].sort()
-const ALL_TAGS = [...new Set(books.flatMap((b) => b.tags))].sort()
 
 type SortKey = 'featured' | 'title' | 'rating' | 'year'
 
@@ -21,7 +19,7 @@ function bookMatchesQuery(book: Book, q: string) {
   )
 }
 
-function suggestionsForQuery(q: string, limit = 8): Book[] {
+function suggestionsForQuery(q: string, books: Book[], limit = 8): Book[] {
   const t = q.trim().toLowerCase()
   if (!t) return []
   return books.filter((b) => bookMatchesQuery(b, t)).slice(0, limit)
@@ -126,6 +124,10 @@ function FilterToggle({
 }
 
 export default function LibraryPage() {
+  const { data: books = [], isLoading, isError } = usePublishedBooks(100)
+  const allGenres = useMemo(() => [...new Set(books.map((b) => b.genre))].sort(), [books])
+  const allTags = useMemo(() => [...new Set(books.flatMap((b) => b.tags))].sort(), [books])
+
   const [query, setQuery] = useState('')
   const [openSuggest, setOpenSuggest] = useState(false)
   const [genres, setGenres] = useState<string[]>([])
@@ -159,9 +161,9 @@ export default function LibraryPage() {
     else out.sort((a, b) => Number(!!b.featured) - Number(!!a.featured) || b.rating - a.rating)
 
     return out
-  }, [query, genres, tags, sort])
+  }, [books, query, genres, tags, sort])
 
-  const suggest = useMemo(() => suggestionsForQuery(query), [query])
+  const suggest = useMemo(() => suggestionsForQuery(query, books), [query, books])
 
   const clearFilters = () => {
     setQuery('')
@@ -198,7 +200,7 @@ export default function LibraryPage() {
                 Browse catalog
               </h1>
               <p className="font-sans mt-2 max-w-2xl text-sm leading-relaxed text-[#6B4226]">
-                Search with suggestions, then open genre or tag filters only when you need them — placeholder data until the API is connected.
+                Search with suggestions, then open genre or tag filters only when you need them.
               </p>
             </div>
             {hasFilters ? (
@@ -303,12 +305,12 @@ export default function LibraryPage() {
               <FilterToggle
                 id="genre-filters"
                 label="Filter by genre"
-                count={ALL_GENRES.length}
+                count={allGenres.length}
                 expanded={genreOpen}
                 onToggle={() => setGenreOpen((o) => !o)}
               >
                 <ChipScrollRail>
-                  {ALL_GENRES.map((g) => (
+                  {allGenres.map((g) => (
                     <button
                       key={g}
                       type="button"
@@ -328,12 +330,12 @@ export default function LibraryPage() {
               <FilterToggle
                 id="tag-filters"
                 label="Filter by tags"
-                count={ALL_TAGS.length}
+                count={allTags.length}
                 expanded={tagOpen}
                 onToggle={() => setTagOpen((o) => !o)}
               >
                 <ChipScrollRail>
-                  {ALL_TAGS.map((t) => (
+                  {allTags.map((t) => (
                     <button
                       key={t}
                       type="button"
@@ -382,7 +384,16 @@ export default function LibraryPage() {
             </div>
           </section>
 
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <div className="relative z-0 rounded-xl border border-[#E8C98A] bg-[#FEF8EE]/50 py-24 text-center">
+              <p className="font-sans text-sm text-[#9B6B4A]">Loading catalog…</p>
+            </div>
+          ) : isError ? (
+            <div className="relative z-0 rounded-xl border border-dashed border-[#E8C98A] bg-[#FEF8EE]/50 py-24 text-center">
+              <p className="font-pictoria text-xl text-[#3D2314]">Could not load books</p>
+              <p className="font-sans mt-2 text-sm text-[#9B6B4A]">Check that the server is running and try again.</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="relative z-0 rounded-xl border border-dashed border-[#E8C98A] bg-[#FEF8EE]/50 py-24 text-center">
               <p className="font-pictoria text-xl text-[#3D2314]">No matches</p>
               <p className="font-sans mt-2 text-sm text-[#9B6B4A]">Try clearing search or filters.</p>

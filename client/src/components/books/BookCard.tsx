@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Star, BookOpen } from 'lucide-react'
-import type { Book } from '../../data/mockBooks'
+import type { Book } from '../../types/book.types'
 
 const genreColors: Record<string, { bg: string; text: string }> = {
   Fantasy: { bg: "#E8D5F5", text: "#6B2D8B" },

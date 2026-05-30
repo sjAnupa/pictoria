@@ -7,7 +7,10 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "rimraf dist && tsc",
     "start": "node dist/server.js",
-    "seed:categories": "ts-node-dev --transpile-only src/scripts/seedCategories.ts"
+    "seed:categories": "ts-node-dev --transpile-only src/scripts/seedCategories.ts",
+    "seed:books": "ts-node-dev --transpile-only src/scripts/seedBooks.ts",
+    "migrate:media": "ts-node-dev --transpile-only src/scripts/migrateMediaUrls.ts",
+    "seed:clear-reading": "ts-node-dev --transpile-only src/scripts/clearReadingProgress.ts"
   },
   "keywords": [],
   "author": "",

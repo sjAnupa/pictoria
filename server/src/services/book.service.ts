@@ -3,8 +3,9 @@ import { Book, IBook, BookStatus } from '../models/Book.model'
 import { Chapter, IChapter } from '../models/Chapter.model'
 import { ReadingProgress } from '../models/ReadingProgress.model'
 import { Bookmark } from '../models/Bookmark.model'
+import { normalizeMediaUrl, normalizeMediaUrls } from '../config/storage'
 import { generateSlug } from '../utils/generateSlug'
-import { deleteImageFromR2, uploadImageToR2 } from './r2.service'
+import { deleteStoredImage, uploadCoverImage } from './storage.service'
 import { CreateBookInput, UpdateBookInput, parseStringArray } from '../validators/book.validator'
 
 export interface BookListQuery {
@@ -12,6 +13,8 @@ export interface BookListQuery {
   tag?: string
   status?: string
   search?: string
+  featured?: boolean
+  isNew?: boolean
   page?: number
   limit?: number
 }
@@ -21,12 +24,18 @@ export async function findAllBooks(query: BookListQuery) {
   const limit = Math.min(100, Math.max(1, query.limit ?? 12))
   const skip = (page - 1) * limit
 
-  const filter: Record<string, unknown> = {
-    status: (query.status ?? 'published') as BookStatus,
+  const filter: Record<string, unknown> = {}
+
+  if (query.status && query.status !== 'all') {
+    filter.status = query.status as BookStatus
+  } else if (!query.status) {
+    filter.status = 'published'
   }
 
   if (query.genre) filter.genres = query.genre
   if (query.tag) filter.tags = query.tag
+  if (query.featured === true) filter.featured = true
+  if (query.isNew === true) filter.newArrival = true
   if (query.search) filter.$text = { $search: query.search }
 
   const [books, totalCount] = await Promise.all([
@@ -35,7 +44,10 @@ export async function findAllBooks(query: BookListQuery) {
   ])
 
   return {
-    books,
+    books: books.map((book) => ({
+      ...book,
+      coverImageUrl: normalizeMediaUrl(book.coverImageUrl),
+    })),
     totalCount,
     totalPages: Math.ceil(totalCount / limit) || 1,
     currentPage: page,
@@ -43,7 +55,41 @@ export async function findAllBooks(query: BookListQuery) {
 }
 
 export async function findBookBySlug(slug: string) {
-  return Book.findOne({ slug, status: 'published' }).lean()
+  const book = await Book.findOne({ slug, status: 'published' }).lean()
+  if (!book) return null
+
+  const chapters = await Chapter.find({ bookId: book._id })
+    .sort({ chapterNumber: 1 })
+    .select('chapterNumber title totalPages')
+    .lean()
+
+  return {
+    ...book,
+    coverImageUrl: normalizeMediaUrl(book.coverImageUrl),
+    chapters,
+  }
+}
+
+export async function findChapterForReading(bookId: string, chapterNumber: number) {
+  if (!Types.ObjectId.isValid(bookId)) return null
+
+  const book = await Book.findOne({ _id: bookId, status: 'published' }).lean()
+  if (!book) return null
+
+  const chapter = await Chapter.findOne({ bookId: book._id, chapterNumber }).lean()
+  if (!chapter) return null
+
+  return {
+    book: {
+      _id: book._id,
+      slug: book.slug,
+      title: book.title,
+    },
+    chapter: {
+      ...chapter,
+      pageImageUrls: normalizeMediaUrls(chapter.pageImageUrls),
+    },
+  }
 }
 
 export async function findBookById(id: string) {
@@ -71,7 +117,7 @@ export async function createBookRecord(
   uploadedBy: string,
 ) {
   const slug = await ensureUniqueSlug(input.title)
-  const coverImageUrl = await uploadImageToR2(coverFile, `books/${slug}`, 'cover')
+  const coverImageUrl = await uploadCoverImage(coverFile, slug)
 
   const book = await Book.create({
     title: input.title,
@@ -113,8 +159,8 @@ export async function updateBookRecord(
   }
 
   if (coverFile) {
-    await deleteImageFromR2(book.coverImageUrl)
-    book.coverImageUrl = await uploadImageToR2(coverFile, `books/${book.slug}`, 'cover')
+    await deleteStoredImage(book.coverImageUrl)
+    book.coverImageUrl = await uploadCoverImage(coverFile, book.slug)
   }
 
   await book.save()
@@ -124,10 +170,10 @@ export async function updateBookRecord(
 export async function deleteBookRecord(book: IBook) {
   const chapters = await Chapter.find({ bookId: book._id })
 
-  await deleteImageFromR2(book.coverImageUrl)
+  await deleteStoredImage(book.coverImageUrl)
   for (const chapter of chapters) {
     for (const url of chapter.pageImageUrls) {
-      await deleteImageFromR2(url)
+      await deleteStoredImage(url)
     }
   }
 

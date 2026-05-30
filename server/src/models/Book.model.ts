@@ -8,15 +8,19 @@ export interface IBook extends Document {
   slug: string
   author: string
   description: string
+  longDescription?: string
   coverImageUrl: string
   genres: string[]
   tags: string[]
   language: string
   publicationYear?: number
+  pageCount: number
   totalChapters: number
   freeChapterLimit: number
   accessType: BookAccessType
   status: BookStatus
+  featured: boolean
+  newArrival: boolean
   stats: {
     totalReads: number
     averageRating: number
@@ -55,6 +59,10 @@ const BookSchema = new Schema<IBook>(
       averageRating: { type: Number, default: 0 },
       totalReviews: { type: Number, default: 0 },
     },
+    longDescription: { type: String },
+    pageCount: { type: Number, default: 0 },
+    featured: { type: Boolean, default: false },
+    newArrival: { type: Boolean, default: false },
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true },
