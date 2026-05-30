@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Pictoria">
+  <rect width="32" height="32" rx="8" fill="#8B2635"/>
+  <path
+    fill="#FEF8EE"
+    d="M9 7h7.2c3.1 0 5.3 1.8 5.3 4.5 0 2.7-2.2 4.4-5.4 4.4H12v9H9V7zm3 7.2h3.9c1.6 0 2.6-.9 2.6-2.4 0-1.5-1-2.4-2.7-2.4H12v4.8z"
+  />
+</svg>

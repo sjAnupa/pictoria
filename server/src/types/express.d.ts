@@ -1,0 +1,16 @@
+import { Request } from 'express'
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        _id: string
+        role: string
+        is_admin: boolean
+        is_super_admin: boolean
+      }
+    }
+  }
+}
+
+export {}
