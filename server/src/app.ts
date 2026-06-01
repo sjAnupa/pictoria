@@ -16,7 +16,12 @@ import { errorMiddleware } from './middleware/error.middleware'
 
 const app = express()
 
-app.use(helmet())
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    crossOriginEmbedderPolicy: false,
+  }),
+)
 app.use(cors({ origin: CLIENT_URL, credentials: true }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))

@@ -36,6 +36,15 @@ export const R2_SECRET_ACCESS_KEY = optional(
 export const R2_BUCKET_NAME = optional('R2_BUCKET_NAME', process.env.R2_BUCKET_NAME, 'pictoria-books')
 export const R2_PUBLIC_URL = optional('R2_PUBLIC_URL', process.env.R2_PUBLIC_URL, 'https://pub-placeholder.r2.dev')
 
+export const GOOGLE_CLIENT_ID = optional('GOOGLE_CLIENT_ID', process.env.GOOGLE_CLIENT_ID, '')
+export const GOOGLE_CLIENT_SECRET = optional('GOOGLE_CLIENT_SECRET', process.env.GOOGLE_CLIENT_SECRET, '')
+export const FACEBOOK_APP_ID = optional('FACEBOOK_APP_ID', process.env.FACEBOOK_APP_ID, '')
+export const FACEBOOK_APP_SECRET = optional('FACEBOOK_APP_SECRET', process.env.FACEBOOK_APP_SECRET, '')
+
+export const isGoogleAuthConfigured = (): boolean => GOOGLE_CLIENT_ID.trim().length > 0
+export const isFacebookAuthConfigured = (): boolean =>
+  FACEBOOK_APP_ID.trim().length > 0 && FACEBOOK_APP_SECRET.trim().length > 0
+
 export const isR2Configured = (): boolean =>
   CLOUDFLARE_ACCOUNT_ID !== 'placeholder' &&
   R2_ACCESS_KEY_ID !== 'placeholder' &&

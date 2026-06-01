@@ -198,7 +198,7 @@ export function BooksIllustration({ size = 320 }: { size?: number }) {
         fill="none"
       />
       <path
-        d="M 130 52 C 160 28 166 40"
+        d="M 130 52 C 150 34 158 30 166 40"
         stroke="#3A6A2D"
         strokeWidth="0.5"
         fill="none"

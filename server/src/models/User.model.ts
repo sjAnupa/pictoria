@@ -2,10 +2,15 @@ import mongoose, { Document, Schema } from 'mongoose'
 
 export type UserRole = 'user' | 'admin' | 'super_admin'
 
+export type AuthProvider = 'local' | 'google' | 'facebook'
+
 export interface IUser extends Document {
   name: string
   email: string
-  passwordHash: string
+  passwordHash?: string
+  googleId?: string
+  facebookId?: string
+  authProviders: AuthProvider[]
   role: UserRole
   is_admin: boolean
   is_super_admin: boolean
@@ -29,7 +34,14 @@ const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true, select: false },
+    passwordHash: { type: String, select: false },
+    googleId: { type: String, unique: true, sparse: true, index: true },
+    facebookId: { type: String, unique: true, sparse: true, index: true },
+    authProviders: {
+      type: [String],
+      enum: ['local', 'google', 'facebook'],
+      default: [],
+    },
     role: {
       type: String,
       enum: ['user', 'admin', 'super_admin'],
@@ -52,6 +64,14 @@ const UserSchema = new Schema<IUser>(
   },
   { timestamps: true },
 )
+
+UserSchema.pre('validate', function requireAuthMethod() {
+  const hasGoogle = Boolean(this.googleId)
+  const hasFacebook = Boolean(this.facebookId)
+  if (!hasGoogle && !hasFacebook) {
+    this.invalidate('googleId', 'Account must use Google or Facebook sign-in')
+  }
+})
 
 UserSchema.pre('save', function syncAdminFlags() {
   if (this.is_super_admin) {

@@ -39,11 +39,13 @@ export type AdminDashboardStats = {
   }>
 }
 
+const READER_FILTER = { is_admin: false, is_super_admin: false }
+
 export async function getCatalogStats(): Promise<CatalogStats> {
   const [bookCount, authors, readerCount] = await Promise.all([
     Book.countDocuments({ status: 'published' }),
     Book.distinct('author', { status: 'published' }),
-    User.countDocuments({ isActive: { $ne: false } }),
+    User.countDocuments({ ...READER_FILTER, isActive: { $ne: false } }),
   ])
 
   return {
@@ -76,7 +78,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     topReadersAgg,
   ] = await Promise.all([
     Book.countDocuments(),
-    User.countDocuments(),
+    User.countDocuments(READER_FILTER),
     Book.aggregate<{ total: number }>([{ $group: { _id: null, total: { $sum: '$stats.totalReads' } } }]),
     ReadingEvent.distinct('userId', { createdAt: { $gte: startOfToday } }),
     ReadingEvent.aggregate<{ _id: string; reads: number }>([
@@ -129,7 +131,10 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   }))
 
   const readerIds = topReadersAgg.map((r) => r._id)
-  const readerUsers = await User.find({ _id: { $in: readerIds } })
+  const readerUsers = await User.find({
+    _id: { $in: readerIds },
+    ...READER_FILTER,
+  })
     .select('name isActive')
     .lean()
   const userMap = new Map(readerUsers.map((u) => [String(u._id), u]))

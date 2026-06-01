@@ -36,7 +36,6 @@ import {
   updateUserAdminAccess,
   userAvatarColor,
   userInitials,
-  type AccountTypeFilter,
   UserServiceError,
 } from '../../services/userService'
 import {
@@ -289,7 +288,7 @@ function DashboardView() {
       {/* Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard icon={<BookOpen size={20} />}    label="Total Books"     value={String(totals?.books ?? 0)}     sub="In catalog"    color="#4F46E5" />
-        <StatCard icon={<Users size={20} />}        label="Registered Users" value={(totals?.users ?? 0).toLocaleString()} sub="All accounts"  color="#059669" />
+        <StatCard icon={<Users size={20} />}        label="Registered Users" value={(totals?.users ?? 0).toLocaleString()} sub="Readers only"  color="#059669" />
         <StatCard icon={<TrendingUp size={20} />}  label="Total Reads"     value={(totals?.totalReads ?? 0).toLocaleString()} sub="Start events" color="#D97706" />
         <StatCard icon={<Eye size={20} />}         label="Active Today"    value={String(totals?.activeToday ?? 0)}    sub="Readers today"  color="#DB2777" />
       </div>
@@ -953,23 +952,16 @@ function ChapterPanel({
 
 // ─── Users View ────────────────────────────────────────────────────────────────
 
-const USER_FILTER_TABS: { id: AccountTypeFilter; label: string }[] = [
-  { id: 'all', label: 'All accounts' },
-  { id: 'readers', label: 'Readers' },
-  { id: 'staff', label: 'Admins' },
-]
-
 function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
-  const [accountFilter, setAccountFilter] = useState<AccountTypeFilter>("all")
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [toggleError, setToggleError] = useState<string | null>(null)
   const currentUser = useAuthStore((s) => s.user)
 
   const usersQuery = useQuery({
-    queryKey: ['admin', 'users', accountFilter, search],
-    queryFn: () => fetchUsers({ accountType: accountFilter, search, limit: 100 }),
+    queryKey: ['admin', 'users', 'readers', search],
+    queryFn: () => fetchUsers({ accountType: 'readers', search, limit: 100 }),
   })
 
   const adminToggleMutation = useMutation({
@@ -1001,40 +993,13 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
       {canManageAdmins ? (
         <div style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 8, background: "#EEF2FF", border: "1px solid #C7D2FE", fontSize: 12, color: "#3730A3", display: "flex", alignItems: "center", gap: 8 }}>
           <ShieldCheck size={16} />
-          Super admin: toggle <strong style={{ marginLeft: 4, marginRight: 4 }}>is_admin</strong> to grant or revoke admin portal access. Changes apply on the user&apos;s next sign-in.
+          Registered <strong style={{ marginLeft: 4, marginRight: 4 }}>readers</strong> only — admin accounts are managed in the database. Toggle <strong>is_admin</strong> for a reader to grant portal access.
         </div>
       ) : (
         <div style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 8, background: "#F9FAFB", border: "1px solid #E5E7EB", fontSize: 12, color: "#6B7280" }}>
-          View registered accounts from the database. Only super admins can change admin access flags.
+          Reader accounts from the database (admins are not listed here).
         </div>
       )}
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-        {USER_FILTER_TABS.map((tab) => {
-          const active = accountFilter === tab.id
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setAccountFilter(tab.id)}
-              style={{
-                padding: "7px 14px",
-                borderRadius: 999,
-                border: active ? "1px solid #4F46E5" : "1px solid #E5E7EB",
-                background: active ? "#EEF2FF" : "#FFFFFF",
-                color: active ? "#4338CA" : "#6B7280",
-                fontSize: 12,
-                fontWeight: active ? 700 : 600,
-                cursor: "pointer",
-                fontFamily: "'Inter', sans-serif",
-                transition: "all 0.15s",
-              }}
-            >
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <div style={{ flex: 1, maxWidth: 320, display: "flex", alignItems: "center", gap: 8, background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 7, padding: "0 11px", height: 36 }}>
@@ -1045,7 +1010,7 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
         {usersQuery.isFetching ? (
           <Loader2 size={14} color="#9CA3AF" className="animate-spin" />
         ) : null}
-        <div style={{ fontSize: 12, color: "#6B7280" }}>{totalCount} {totalCount === 1 ? "account" : "accounts"}</div>
+        <div style={{ fontSize: 12, color: "#6B7280" }}>{totalCount} {totalCount === 1 ? "reader" : "readers"}</div>
       </div>
 
       {toggleError ? (

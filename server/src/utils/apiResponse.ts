@@ -18,10 +18,12 @@ export function errorResponse(
   message: string,
   statusCode = 500,
   errors: string[] = [],
+  code?: string,
 ): Response {
   return res.status(statusCode).json({
     success: false,
     message,
     errors,
+    ...(code ? { code } : {}),
   })
 }

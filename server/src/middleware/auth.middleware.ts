@@ -1,16 +1,19 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../config/env'
+import { User } from '../models/User.model'
 import { errorResponse } from '../utils/apiResponse'
 
 interface JwtPayload {
   _id: string
-  role: string
-  is_admin: boolean
-  is_super_admin: boolean
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+/** Verifies JWT, then loads current role flags from MongoDB (so DB admin updates apply without re-login). */
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -22,11 +25,25 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload
+    const user = await User.findById(decoded._id).select(
+      'role is_admin is_super_admin isActive',
+    )
+
+    if (!user) {
+      errorResponse(res, 'User not found', 401)
+      return
+    }
+
+    if (!user.isActive) {
+      errorResponse(res, 'Account is deactivated', 403)
+      return
+    }
+
     req.user = {
-      _id: decoded._id,
-      role: decoded.role,
-      is_admin: Boolean(decoded.is_admin),
-      is_super_admin: Boolean(decoded.is_super_admin),
+      _id: String(user._id),
+      role: user.role,
+      is_admin: Boolean(user.is_admin),
+      is_super_admin: Boolean(user.is_super_admin),
     }
     next()
   } catch {

@@ -26,7 +26,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<Response
   }
 
   const accountType = req.query.accountType
-  if (accountType === 'readers') {
+  if (accountType === 'readers' || accountType === 'all' || !accountType) {
     filter.is_admin = false
     filter.is_super_admin = false
   } else if (accountType === 'admins') {

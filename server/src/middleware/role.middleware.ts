@@ -21,7 +21,7 @@ export const requireRole =
         : roles.some((role) => roleMatches(req.user!.role, role))
 
     if (!allowed) {
-      errorResponse(res, 'Forbidden: insufficient permissions', 403)
+      errorResponse(res, 'Forbidden: insufficient permissions', 403, [], 'FORBIDDEN')
       return
     }
 

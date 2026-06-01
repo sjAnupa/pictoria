@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, CheckCircle2, Clock, Lock, TrendingUp } from 'lucide-react'
+import { BookOpen, CheckCircle2, Clock, TrendingUp } from 'lucide-react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import { useMyReadingLibrary, trackReading } from '../../hooks/useReadingProgress'
+import { useAuthStore } from '../../store/authStore'
 
 type LibraryTab = 'reading' | 'finished'
 
 export default function AccountPage() {
   const { data: library, isLoading, isError } = useMyReadingLibrary()
   const [libraryTab, setLibraryTab] = useState<LibraryTab>('reading')
+  const user = useAuthStore((s) => s.user)
 
   const reading = library?.currentlyReading ?? []
   const finished = library?.finished ?? []
@@ -44,7 +46,7 @@ export default function AccountPage() {
                 My library
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#9B6B4A]">
-                Track your reading progress, continue current books, and manage account settings from one place.
+                Your reading library and progress — signed in as {user?.email ?? 'your account'}.
               </p>
             </div>
             <div className="mx-auto grid w-full max-w-xl gap-3 sm:grid-cols-3 lg:mx-0 lg:max-w-[34rem]">
@@ -209,52 +211,6 @@ export default function AccountPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9B6B4A]">Total chapters</p>
               <p className="mt-1 text-lg font-bold text-[#3D2314]">{stats?.totalChaptersRead ?? 0}</p>
             </div>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-[#E8C98A] bg-[#FEF8EE] p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center gap-2 text-[#3D2314]">
-            <Lock className="h-5 w-5 text-[#6B4226]" aria-hidden />
-            <h2 className="text-lg font-bold">Security</h2>
-          </div>
-          <p className="mb-4 text-sm text-[#9B6B4A]">
-            Password changes and reset flows will connect to the API later. Fields below are layout-only.
-          </p>
-          <div className="mx-auto max-w-md space-y-4">
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#6B4226]">
-              Current password
-              <input
-                type="password"
-                disabled
-                placeholder="••••••••"
-                className="mt-1.5 w-full rounded-xl border border-[#E8C98A] bg-[#FDF0D5] px-3 py-2.5 text-sm text-[#3D2314] outline-none"
-              />
-            </label>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#6B4226]">
-              New password
-              <input
-                type="password"
-                disabled
-                placeholder="At least 8 characters"
-                className="mt-1.5 w-full rounded-xl border border-[#E8C98A] bg-[#FDF0D5] px-3 py-2.5 text-sm text-[#3D2314] outline-none"
-              />
-            </label>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#6B4226]">
-              Confirm new password
-              <input
-                type="password"
-                disabled
-                placeholder="Repeat new password"
-                className="mt-1.5 w-full rounded-xl border border-[#E8C98A] bg-[#FDF0D5] px-3 py-2.5 text-sm text-[#3D2314] outline-none"
-              />
-            </label>
-            <button
-              type="button"
-              disabled
-              className="w-full rounded-full bg-[#8B2635] py-2.5 text-sm font-bold text-[#FEF8EE] opacity-50"
-            >
-              Update password (soon)
-            </button>
           </div>
         </section>
       </main>

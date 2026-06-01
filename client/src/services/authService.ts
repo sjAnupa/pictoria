@@ -2,10 +2,15 @@ import axios from 'axios'
 import api from './api'
 import type { AuthResponse, User } from '../types/user.types'
 
+export type AuthIntent = 'login' | 'register'
+
 export class AuthError extends Error {
-  constructor(message: string) {
+  code?: string
+
+  constructor(message: string, code?: string) {
     super(message)
     this.name = 'AuthError'
+    this.code = code
   }
 }
 
@@ -22,6 +27,7 @@ type ApiUser = {
 type AuthPayload = {
   success: boolean
   message?: string
+  code?: string
   data: {
     user: ApiUser
     token: string
@@ -46,36 +52,51 @@ function mapApiUser(raw: ApiUser): User {
   }
 }
 
-function messageFromError(err: unknown, fallback: string): string {
+function messageFromError(err: unknown, fallback: string): { message: string; code?: string } {
   if (axios.isAxiosError(err)) {
-    const body = err.response?.data as { message?: string; errors?: string[] } | undefined
-    if (body?.errors?.length) return body.errors.join(' ')
-    if (body?.message) return body.message
+    if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
+      return {
+        message:
+          'Cannot reach the API server. Start it with: cd server && npm run dev (port 5000).',
+        code: 'NETWORK_ERROR',
+      }
+    }
+    const body = err.response?.data as { message?: string; errors?: string[]; code?: string } | undefined
+    if (body?.errors?.length) return { message: body.errors.join(' '), code: body.code }
+    if (body?.message) return { message: body.message, code: body.code }
   }
-  return fallback
+  return { message: fallback }
 }
 
-export async function register(name: string, email: string, password: string): Promise<AuthResponse> {
+export async function signInWithGoogle(
+  credential: string,
+  intent: AuthIntent,
+): Promise<AuthResponse> {
   try {
-    const { data } = await api.post<AuthPayload>('/auth/register', { name, email, password })
+    const { data } = await api.post<AuthPayload>('/auth/google', { credential, intent })
     return {
       user: mapApiUser(data.data.user),
       token: data.data.token,
     }
   } catch (err) {
-    throw new AuthError(messageFromError(err, 'Registration failed. Please try again.'))
+    const { message, code } = messageFromError(err, 'Google sign-in failed. Please try again.')
+    throw new AuthError(message, code)
   }
 }
 
-export async function login(email: string, password: string): Promise<AuthResponse> {
+export async function signInWithFacebook(
+  accessToken: string,
+  intent: AuthIntent,
+): Promise<AuthResponse> {
   try {
-    const { data } = await api.post<AuthPayload>('/auth/login', { email, password })
+    const { data } = await api.post<AuthPayload>('/auth/facebook', { accessToken, intent })
     return {
       user: mapApiUser(data.data.user),
       token: data.data.token,
     }
   } catch (err) {
-    throw new AuthError(messageFromError(err, 'Invalid email or password.'))
+    const { message, code } = messageFromError(err, 'Facebook sign-in failed. Please try again.')
+    throw new AuthError(message, code)
   }
 }
 
@@ -84,6 +105,7 @@ export async function getMe(): Promise<User> {
     const { data } = await api.get<MePayload>('/auth/me')
     return mapApiUser(data.data)
   } catch (err) {
-    throw new AuthError(messageFromError(err, 'Session expired. Please sign in again.'))
+    const { message } = messageFromError(err, 'Session expired. Please sign in again.')
+    throw new AuthError(message)
   }
 }
