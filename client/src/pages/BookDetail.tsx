@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useMemo, useState, useCallback, useEffect } from 'react'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Star,
@@ -25,7 +25,16 @@ import { useBookEngagement, useToggleBookLike, useToggleSavedBook } from '../hoo
 import { useAuthStore } from '../store/authStore'
 import { canAccessAdminPortal } from '../utils/authPermissions'
 import { getChapterAccess } from '../utils/chapterAccess'
+import { findSimilarBooks } from '../utils/similarBooks'
+import { FONT_DISPLAY } from '../theme/typography'
 import AdminPreviewStatusBadge from '../components/books/AdminPreviewStatusBadge'
+
+type BookDetailTab = 'overview' | 'chapters' | 'similar'
+
+function tabFromParam(value: string | null): BookDetailTab {
+  if (value === 'chapters' || value === 'similar' || value === 'overview') return value
+  return 'overview'
+}
 
 const genreColors: Record<string, { bg: string; text: string }> = {
   Fantasy: { bg: "#E8D5F5", text: "#6B2D8B" },
@@ -46,7 +55,8 @@ function chapterReadMetrics(totalPages: number, chapterCount: number) {
 export default function BookDetail() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'overview' | 'chapters' | 'similar'>('overview')
+  const [searchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState<BookDetailTab>(() => tabFromParam(searchParams.get('tab')))
   const [accessNotice, setAccessNotice] = useState<string | null>(null)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const isAdmin = canAccessAdminPortal(useAuthStore((s) => s.user))
@@ -57,6 +67,10 @@ export default function BookDetail() {
   const { data: engagement } = useBookEngagement(book?.id)
   const toggleLike = useToggleBookLike(book?.id ?? '')
   const toggleSave = useToggleSavedBook(book?.id ?? '')
+
+  useEffect(() => {
+    setActiveTab(tabFromParam(searchParams.get('tab')))
+  }, [searchParams])
 
   const liked = engagement?.liked ?? false
   const bookmarked = engagement?.saved ?? false
@@ -115,7 +129,6 @@ export default function BookDetail() {
         <Navbar />
         <main
           className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16"
-          style={{ fontFamily: "'Nunito', sans-serif" }}
         >
           <p className="text-sm text-[#9B6B4A]">Loading book…</p>
         </main>
@@ -130,10 +143,9 @@ export default function BookDetail() {
         <Navbar />
         <main
           className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16"
-          style={{ fontFamily: "'Nunito', sans-serif" }}
         >
           <BooksIllustration size={180} />
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: '#3D2314' }}>Book Not Found</div>
+          <div className="font-pictoria text-[28px] text-[#3D2314]">Book Not Found</div>
           <Link to="/" style={{ color: '#8B2635', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>
             ← Back to home
           </Link>
@@ -144,9 +156,7 @@ export default function BookDetail() {
   }
 
   const genreColor = genreColors[book.genre] || { bg: "#F5E8D5", text: "#8B5A1A" };
-  const similarBooks = allBooks.filter((b) => b.id !== book.id && b.genre === book.genre).slice(0, 4);
-  const otherBooks = allBooks.filter((b) => b.id !== book.id).slice(0, 4);
-  const displaySimilar = similarBooks.length >= 2 ? similarBooks : otherBooks;
+  const displaySimilar = findSimilarBooks(book, allBooks, 4);
 
   const requireSignIn = () => {
     navigate('/login', { state: { from: `/books/${book.slug}` } })
@@ -237,7 +247,6 @@ export default function BookDetail() {
           </div>
         </div>
       ) : null}
-      <div className="flex-1 w-full min-w-0" style={{ fontFamily: "'Nunito', sans-serif" }}>
       {/* ===== HERO BOOK SECTION ===== */}
       <div
         style={{
@@ -276,7 +285,6 @@ export default function BookDetail() {
               fontSize: 13,
               fontWeight: 600,
               cursor: "pointer",
-              fontFamily: "'Nunito', sans-serif",
               transition: "all 0.2s",
               backdropFilter: "blur(4px)",
             }}
@@ -357,7 +365,6 @@ export default function BookDetail() {
                   gap: 5,
                   fontSize: 12,
                   fontWeight: 600,
-                  fontFamily: "'Nunito', sans-serif",
                   transition: "all 0.2s",
                 }}
               >
@@ -385,7 +392,6 @@ export default function BookDetail() {
                   gap: 5,
                   fontSize: 12,
                   fontWeight: 600,
-                  fontFamily: "'Nunito', sans-serif",
                   transition: "all 0.2s",
                 }}
               >
@@ -437,7 +443,7 @@ export default function BookDetail() {
 
             <h1
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: FONT_DISPLAY,
                 fontWeight: 700,
                 fontSize: "clamp(28px, 4vw, 46px)",
                 color: "#F5D9A0",
@@ -450,7 +456,6 @@ export default function BookDetail() {
 
             <div
               style={{
-                fontFamily: "'Lora', serif",
                 fontStyle: "italic",
                 fontSize: 16,
                 color: "#C9952A",
@@ -543,7 +548,6 @@ export default function BookDetail() {
             {/* Description */}
             <p
               style={{
-                fontFamily: "'Lora', serif",
                 fontSize: 15,
                 color: "#C4A875",
                 lineHeight: 1.8,
@@ -575,7 +579,6 @@ export default function BookDetail() {
                   fontSize: 15,
                   fontWeight: 700,
                   cursor: "pointer",
-                  fontFamily: "'Nunito', sans-serif",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -596,7 +599,6 @@ export default function BookDetail() {
                 type="button"
                 onClick={() => setActiveTab('chapters')}
                 className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#FEF8EE] bg-[#FEF8EE] px-7 py-3.5 text-[15px] font-bold text-[#8B2635] shadow-[0_4px_14px_rgba(0,0,0,0.22)] transition hover:border-[#FDF0D5] hover:bg-[#FDF0D5] sm:w-auto"
-                style={{ fontFamily: "'Nunito', sans-serif" }}
               >
                 <List size={15} strokeWidth={2.25} aria-hidden />
                 View Chapters
@@ -625,7 +627,6 @@ export default function BookDetail() {
                 borderBottom: `3px solid ${activeTab === tab ? "#8B2635" : "transparent"}`,
                 color: activeTab === tab ? "#8B2635" : "#9B6B4A",
                 cursor: "pointer",
-                fontFamily: "'Nunito', sans-serif",
                 textTransform: "capitalize",
                 letterSpacing: "0.02em",
                 marginBottom: -2,
@@ -650,7 +651,7 @@ export default function BookDetail() {
             <div>
               <h2
                 style={{
-                  fontFamily: "'Playfair Display', serif",
+                  fontFamily: FONT_DISPLAY,
                   fontWeight: 700,
                   fontSize: 22,
                   color: "#3D2314",
@@ -661,7 +662,6 @@ export default function BookDetail() {
               </h2>
               <p
                 style={{
-                  fontFamily: "'Lora', serif",
                   fontSize: 16,
                   color: "#6B4226",
                   lineHeight: 1.9,
@@ -704,7 +704,7 @@ export default function BookDetail() {
                   <BookOpen size={18} color="#8B2635" />
                   <span
                     style={{
-                      fontFamily: "'Playfair Display', serif",
+                      fontFamily: FONT_DISPLAY,
                       fontWeight: 700,
                       fontSize: 16,
                       color: "#3D2314",
@@ -715,7 +715,6 @@ export default function BookDetail() {
                 </div>
                 <p
                   style={{
-                    fontFamily: "'Lora', serif",
                     fontSize: 15,
                     color: "#6B4226",
                     lineHeight: 1.9,
@@ -740,7 +739,6 @@ export default function BookDetail() {
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: "pointer",
-                    fontFamily: "'Nunito', sans-serif",
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
@@ -764,7 +762,7 @@ export default function BookDetail() {
               >
                 <h3
                   style={{
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: FONT_DISPLAY,
                     fontWeight: 700,
                     fontSize: 16,
                     color: "#3D2314",
@@ -826,7 +824,7 @@ export default function BookDetail() {
               >
                 <h3
                   style={{
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: FONT_DISPLAY,
                     fontWeight: 700,
                     fontSize: 16,
                     color: "#3D2314",
@@ -897,7 +895,6 @@ export default function BookDetail() {
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
-                    fontFamily: "'Nunito', sans-serif",
                     transition: "all 0.2s",
                   }}
                   onMouseEnter={(e) => {
@@ -921,7 +918,7 @@ export default function BookDetail() {
           <div style={{ paddingBottom: 64 }}>
             <h2
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: FONT_DISPLAY,
                 fontWeight: 700,
                 fontSize: 22,
                 color: "#3D2314",
@@ -935,7 +932,6 @@ export default function BookDetail() {
                 fontSize: 14,
                 color: "#9B6B4A",
                 marginBottom: 28,
-                fontFamily: "'Lora', serif",
                 fontStyle: "italic",
               }}
             >
@@ -983,7 +979,7 @@ export default function BookDetail() {
                       fontWeight: 700,
                       fontSize: 14,
                       flexShrink: 0,
-                      fontFamily: "'Playfair Display', serif",
+                      fontFamily: FONT_DISPLAY,
                     }}
                   >
                     {i + 1}
@@ -991,7 +987,7 @@ export default function BookDetail() {
                   <div style={{ flex: 1 }}>
                     <div
                       style={{
-                        fontFamily: "'Playfair Display', serif",
+                        fontFamily: FONT_DISPLAY,
                         fontWeight: 600,
                         fontSize: 15,
                         color: "#3D2314",
@@ -1022,7 +1018,7 @@ export default function BookDetail() {
           <div style={{ paddingBottom: 64 }}>
             <h2
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: FONT_DISPLAY,
                 fontWeight: 700,
                 fontSize: 22,
                 color: "#3D2314",
@@ -1035,12 +1031,11 @@ export default function BookDetail() {
               style={{
                 fontSize: 14,
                 color: "#9B6B4A",
-                fontFamily: "'Lora', serif",
                 fontStyle: "italic",
                 marginBottom: 28,
               }}
             >
-              Curated picks based on {book.title}
+              Curated picks with matching genres and tags
             </p>
             <div className="book-grid">
               {displaySimilar.map((b) => (
@@ -1049,7 +1044,6 @@ export default function BookDetail() {
             </div>
           </div>
         )}
-      </div>
       </div>
       <Footer />
     </div>

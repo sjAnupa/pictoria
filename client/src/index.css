@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,400..900;1,400..900&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,8 @@
 
 @layer base {
   body {
-    @apply antialiased bg-[#FDF0D5] text-[#3D2314];
+    @apply antialiased bg-[#FDF0D5] text-[#3D2314] font-sans leading-relaxed;
+    font-size: 16px;
   }
 
   /*
@@ -17,6 +18,8 @@
   :root {
     --page-gutter-inline: 1rem;
     --page-content-max: 100%;
+    --font-display: 'Literata', Georgia, serif;
+    --font-body: 'Lexend', system-ui, sans-serif;
   }
 
   @media (min-width: 640px) {
@@ -110,6 +113,11 @@
 
   .admin-form-header {
     @apply sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-[#E8C98A] bg-[#FEF8EE] px-4 py-3 sm:gap-3 sm:px-6;
+  }
+
+  .type-reading {
+    @apply font-sans leading-reading;
+    font-weight: 400;
   }
 }
 

@@ -18,6 +18,7 @@ export function mapApiBook(raw: ApiBookRecord): Book {
     author: raw.author,
     publisher: raw.publisher,
     genre: raw.genres[0] ?? 'General',
+    genres: raw.genres ?? [],
     coverImage: resolveMediaUrl(raw.coverImageUrl),
     description: raw.description,
     longDescription: raw.longDescription ?? raw.description,

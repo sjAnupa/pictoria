@@ -77,7 +77,7 @@ const ChapterScrollReader = ({
   }, [pages.length])
 
   return (
-    <div className="flex min-h-[100dvh] w-full flex-col bg-[#E8D4A8]" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="flex min-h-[100dvh] w-full flex-col bg-[#E8D4A8] font-sans">
       <div className="sticky top-0 z-20 border-b border-[#C9A86A]/80 bg-[#FEF8EE]/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md">
         <div className="mx-auto flex max-w-[min(100%,720px)] items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 md:px-5">
           <Link

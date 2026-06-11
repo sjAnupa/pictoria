@@ -30,6 +30,7 @@ export default function Navbar() {
 
   return (
     <nav
+      className="font-sans"
       style={{
         background: 'rgba(253, 240, 213, 0.97)',
         borderBottom: '1.5px solid #E8C98A',
@@ -37,7 +38,6 @@ export default function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        fontFamily: "'Nunito', sans-serif",
       }}
     >
       <div className="page-gutter flex min-h-[64px] items-center gap-2 py-2 sm:min-h-[72px] sm:gap-4 sm:py-0">
@@ -124,7 +124,7 @@ export default function Navbar() {
       {menuOpen && (
         <div
           className="page-gutter border-t border-[#E8C98A] py-4 md:hidden"
-          style={{ background: '#FDF0D5', fontFamily: "'Nunito', sans-serif" }}
+          style={{ background: '#FDF0D5' }}
         >
           <div className="flex flex-col gap-1">
             {onHome ? (

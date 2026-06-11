@@ -494,13 +494,13 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
                       </button>
                       {menuOpen === book.id && (
                         <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 20, background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", minWidth: 140, marginTop: 4, overflow: "hidden" }}>
-                          <button onClick={() => { handleToggleStatus(book.id, book.status); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, color: "#374151", fontFamily: "'Inter', sans-serif", textAlign: "left", transition: "background 0.1s" }}
+                          <button onClick={() => { handleToggleStatus(book.id, book.status); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, color: "#374151", fontFamily: ADMIN_FONT, textAlign: "left", transition: "background 0.1s" }}
                             onMouseEnter={(e) => e.currentTarget.style.background = "#F9FAFB"}
                             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                             <EyeOff size={12} /> {book.status === "Published" ? "Hide Book" : "Publish"}
                           </button>
                           <div style={{ height: 1, background: "#F3F4F6" }} />
-                          <button onClick={() => { setDeleteConfirm(book.id); setMenuOpen(null); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, color: "#EF4444", fontFamily: "'Inter', sans-serif", textAlign: "left", transition: "background 0.1s" }}
+                          <button onClick={() => { setDeleteConfirm(book.id); setMenuOpen(null); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, color: "#EF4444", fontFamily: ADMIN_FONT, textAlign: "left", transition: "background 0.1s" }}
                             onMouseEnter={(e) => e.currentTarget.style.background = "#FEF2F2"}
                             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                             <Trash2 size={12} /> Delete
@@ -526,7 +526,7 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
       {deleteConfirm !== null && (
         <>
           <div onClick={() => setDeleteConfirm(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 50 }} />
-          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", background: "#FFFFFF", borderRadius: 12, padding: 24, zIndex: 60, width: 360, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", fontFamily: "'Inter', sans-serif" }}>
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", background: "#FFFFFF", borderRadius: 12, padding: 24, zIndex: 60, width: 360, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", fontFamily: ADMIN_FONT }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
               <div style={{ width: 36, height: 36, borderRadius: 8, background: "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <AlertTriangle size={18} color="#EF4444" />
@@ -981,7 +981,6 @@ export default function AdminPanel() {
   return (
     <div
       className="flex h-[100dvh] overflow-hidden bg-[#FDF0D5] font-sans text-[#3D2314]"
-      style={{ fontFamily: ADMIN_FONT }}
     >
       <Sidebar
         active={activeNav}

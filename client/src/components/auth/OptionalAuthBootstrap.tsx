@@ -43,13 +43,13 @@ export default function OptionalAuthBootstrap() {
   if (!ready) {
     return (
       <div
+        className="font-sans"
         style={{
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           background: '#FDF0D5',
-          fontFamily: "'Nunito', sans-serif",
           color: '#6B4226',
         }}
       >

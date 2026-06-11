@@ -11,7 +11,6 @@ const Footer = () => {
   return (
     <footer
       className="font-sans bg-[#3D2314] py-8 text-[#F5D9A0] sm:py-12"
-      style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       <div className="page-gutter mb-8 grid grid-cols-1 gap-8 sm:mb-10 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] sm:gap-10">
         <div>

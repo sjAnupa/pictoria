@@ -4,6 +4,7 @@ import { BooksIllustration } from '../illustrations/BooksIllustration'
 import BookCard from '../books/BookCard'
 import { useFeaturedBooks, useNewBooks } from '../../hooks/useBooks'
 import { useCatalogStats } from '../../hooks/useAdminBooks'
+import { FONT_DISPLAY } from '../../theme/typography'
 
 function formatCatalogStat(count: number): string {
   if (count >= 1000) {
@@ -23,7 +24,6 @@ export default function PictoriaHomeContent() {
     <div
       style={{
         background: '#FDF0D5',
-        fontFamily: "'Nunito', sans-serif",
       }}
     >
       {/* ===== HERO SECTION ===== */}
@@ -104,7 +104,7 @@ export default function PictoriaHomeContent() {
 
             <h1
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: FONT_DISPLAY,
                 fontWeight: 700,
                 fontSize: "clamp(36px, 5vw, 58px)",
                 color: "#3D2314",
@@ -128,7 +128,6 @@ export default function PictoriaHomeContent() {
 
             <p
               style={{
-                fontFamily: "'Lora', serif",
                 fontSize: 17,
                 color: "#6B4226",
                 lineHeight: 1.75,
@@ -156,7 +155,6 @@ export default function PictoriaHomeContent() {
                     fontSize: 15,
                     fontWeight: 700,
                     cursor: "pointer",
-                    fontFamily: "'Nunito', sans-serif",
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
@@ -189,7 +187,6 @@ export default function PictoriaHomeContent() {
                   fontSize: 15,
                   fontWeight: 700,
                   cursor: "pointer",
-                  fontFamily: "'Nunito', sans-serif",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -227,7 +224,7 @@ export default function PictoriaHomeContent() {
                 <div key={stat.label}>
                   <div
                     style={{
-                      fontFamily: "'Playfair Display', serif",
+                      fontFamily: FONT_DISPLAY,
                       fontWeight: 700,
                       fontSize: 22,
                       color: "#8B2635",
@@ -416,7 +413,6 @@ export default function PictoriaHomeContent() {
             <Link
               to="/library"
               className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-[#8B2635] no-underline"
-              style={{ fontFamily: "'Nunito', sans-serif" }}
             >
               Open catalog <ChevronRight size={14} />
             </Link>
@@ -463,7 +459,7 @@ export default function PictoriaHomeContent() {
         >
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: FONT_DISPLAY,
               fontSize: "clamp(22px, 4vw, 38px)",
               fontStyle: "italic",
               color: "#F5D9A0",
@@ -481,7 +477,6 @@ export default function PictoriaHomeContent() {
               fontWeight: 700,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              fontFamily: "'Nunito', sans-serif",
             }}
           >
             — George R.R. Martin
@@ -522,7 +517,6 @@ export default function PictoriaHomeContent() {
             <Link
               to="/library"
               className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-[#8B2635] no-underline"
-              style={{ fontFamily: "'Nunito', sans-serif" }}
             >
               Open catalog <ChevronRight size={14} />
             </Link>
@@ -555,14 +549,12 @@ export default function PictoriaHomeContent() {
           <h2 className="font-pictoria text-[clamp(1.5rem,3vw,2rem)] font-semibold text-[#3D2314]">Full catalog</h2>
           <p
             className="mt-3 max-w-lg text-sm leading-relaxed text-[#6B4226]"
-            style={{ fontFamily: "'Nunito', sans-serif" }}
           >
             Search, sort, and filter every title in one place. Highlights stay on this page; the catalog opens separately so filters never fight with the story sections above.
           </p>
           <Link
             to="/library"
             className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#8B2635] to-[#A83040] px-8 py-3.5 text-sm font-bold text-[#FEF8EE] shadow-[0_12px_32px_rgba(139,38,53,0.35)] no-underline transition hover:brightness-105"
-            style={{ fontFamily: "'Nunito', sans-serif" }}
           >
             Open catalog
             <ChevronRight size={18} />

@@ -1,4 +1,6 @@
 /** Shared Pictoria palette for admin (matches public site). */
+import { FONT_BODY } from '../../theme/typography'
+
 export const adminTheme = {
   bg: '#FDF0D5',
   surface: '#FEF8EE',
@@ -14,4 +16,4 @@ export const adminTheme = {
   accent: '#C9952A',
 } as const
 
-export const ADMIN_FONT = "'Nunito', sans-serif"
+export const ADMIN_FONT = FONT_BODY

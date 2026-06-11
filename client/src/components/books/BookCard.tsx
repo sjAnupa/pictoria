@@ -86,7 +86,7 @@ export default function BookCard({ book, variant = 'default', shortTile = false 
             {book.title}
           </h3>
 
-          <p className="mt-0.5 truncate text-xs italic text-[#9B6B4A]" style={{ fontFamily: "'Lora', serif" }}>
+          <p className="mt-0.5 truncate text-xs italic text-[#9B6B4A]">
             by {book.author}
           </p>
 

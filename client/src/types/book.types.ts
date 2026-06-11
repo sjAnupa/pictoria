@@ -9,6 +9,7 @@ export interface Book {
   author: string
   publisher?: string
   genre: string
+  genres: string[]
   coverImage: string
   description: string
   longDescription: string

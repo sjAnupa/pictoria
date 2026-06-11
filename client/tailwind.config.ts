@@ -5,11 +5,15 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        pictoria: ['Fraunces', 'Georgia', 'serif'],
-        display: ['"Playfair Display"', 'serif'],
-        sans: ['Nunito', 'system-ui', 'sans-serif'],
-        serif: ['Lora', 'Georgia', 'serif'],
-        admin: ['Inter', 'system-ui', 'sans-serif'],
+        /** Book titles & section headings — readable literary serif */
+        pictoria: ['Literata', 'Georgia', 'serif'],
+        display: ['Literata', 'Georgia', 'serif'],
+        /** Body, UI, admin — Lexend is designed for comfortable screen reading */
+        sans: ['Lexend', 'system-ui', 'sans-serif'],
+        admin: ['Lexend', 'system-ui', 'sans-serif'],
+      },
+      lineHeight: {
+        reading: '1.75',
       },
     },
   },

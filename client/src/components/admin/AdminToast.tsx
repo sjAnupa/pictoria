@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, X, XCircle } from 'lucide-react'
+import { ADMIN_FONT } from '../../pages/admin/adminTheme'
 
 export type AdminToastTone = 'success' | 'error'
 
@@ -53,7 +54,7 @@ export default function AdminToast({ toast, onDismiss, durationMs = 3800 }: Admi
             boxShadow: isSuccess
               ? '0 16px 40px rgba(0,0,0,0.12)'
               : '0 16px 40px rgba(220,38,38,0.18)',
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: ADMIN_FONT,
           }}
         >
           {isSuccess ? (

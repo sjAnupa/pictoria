@@ -105,8 +105,7 @@ const Reader = () => {
 
   return (
     <div
-      className="flex min-h-[100dvh] flex-col bg-[#E8D4A8]"
-      style={{ fontFamily: "'Nunito', sans-serif" }}
+      className="flex min-h-[100dvh] flex-col bg-[#E8D4A8] font-sans"
     >
       {bookTitle ? (
         <PageMeta
@@ -161,7 +160,7 @@ const Reader = () => {
           </div>
         ) : (
           <ChapterScrollReader
-            backTo={`/books/${backSlug}`}
+            backTo={`/books/${backSlug}?tab=chapters`}
             bookTitle={bookTitle}
             chapterLabel={chapterLabel}
             pageUrls={pageUrls}

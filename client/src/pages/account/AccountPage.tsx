@@ -37,7 +37,7 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FDF0D5]" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="flex min-h-screen flex-col bg-[#FDF0D5] font-sans">
       <Navbar />
       <main className="page-gutter flex-1 py-6 sm:py-8">
         <header className="mb-6 rounded-2xl border border-[#E8C98A] bg-[#FEF8EE]/90 p-4 shadow-[0_10px_30px_-18px_rgba(90,40,10,0.3)] backdrop-blur-sm sm:p-6">

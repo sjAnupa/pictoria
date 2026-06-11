@@ -102,7 +102,7 @@ export default function AuthScreen({
   const hasProvider = isGoogleSignInEnabled() || isFacebookSignInEnabled()
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="grid min-h-screen font-sans lg:grid-cols-2">
       <BrandPanel />
 
       <div className="flex min-h-screen flex-col bg-[#FEF8EE]">

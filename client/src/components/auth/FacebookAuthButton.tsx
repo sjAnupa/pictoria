@@ -53,8 +53,7 @@ export default function FacebookAuthButton({
       type="button"
       disabled={disabled || !ready}
       onClick={handleClick}
-      className="flex h-[48px] w-full items-center justify-center gap-3 rounded-[10px] border border-[#dadce0] bg-white px-4 text-[15px] font-medium text-[#3c4043] shadow-[0_1px_2px_rgba(60,64,67,0.06)] transition hover:bg-[#f8f9fa] disabled:cursor-not-allowed disabled:opacity-50"
-      style={{ fontFamily: "'Nunito', sans-serif" }}
+      className="font-sans flex h-[48px] w-full items-center justify-center gap-3 rounded-[10px] border border-[#dadce0] bg-white px-4 text-[15px] font-medium text-[#3c4043] shadow-[0_1px_2px_rgba(60,64,67,0.06)] transition hover:bg-[#f8f9fa] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <FacebookIcon />
       Continue with Facebook

@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom'
 import { BookOpen, Sparkles } from 'lucide-react'
 import { BooksIllustration } from '../components/illustrations/BooksIllustration'
+import { FONT_DISPLAY } from '../theme/typography'
 
 const Landing = () => {
   return (
     <div
+      className="font-sans"
       style={{
         minHeight: '100vh',
         background: '#FDF0D5',
-        fontFamily: "'Nunito', sans-serif",
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -23,7 +24,7 @@ const Landing = () => {
           background: 'rgba(253, 240, 213, 0.95)',
         }}
       >
-        <Link to="/" style={{ textDecoration: 'none', color: '#3D2314', fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 22 }}>
+        <Link to="/" className="font-pictoria no-underline text-[22px] font-bold text-[#3D2314]">
           Pictoria
         </Link>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -91,7 +92,7 @@ const Landing = () => {
           </div>
           <h1
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: FONT_DISPLAY,
               fontWeight: 700,
               fontSize: 'clamp(32px, 5vw, 52px)',
               color: '#3D2314',
@@ -104,7 +105,6 @@ const Landing = () => {
           </h1>
           <p
             style={{
-              fontFamily: "'Lora', serif",
               fontSize: 17,
               color: '#6B4226',
               lineHeight: 1.75,

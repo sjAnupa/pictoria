@@ -3,6 +3,7 @@ import { useCallback, useRef, useState, type CSSProperties, type ReactNode } fro
 import { Plus, Trash2, Palette, Tag as TagIcon, BookMarked, Loader2 } from 'lucide-react'
 import EmojiPicker from '../../../components/admin/EmojiPicker'
 import AdminToast, { type AdminToastState } from '../../../components/admin/AdminToast'
+import { ADMIN_FONT } from '../adminTheme'
 import { AdminButton, AdminConfirmDialog, AdminDialog, AdminModalActions } from '../adminUi'
 import {
   createCategory,
@@ -101,7 +102,7 @@ const inputStyle: CSSProperties = {
   border: '1px solid #D1D5DB',
   borderRadius: 7,
   outline: 'none',
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: ADMIN_FONT,
   boxSizing: 'border-box',
 }
 
@@ -244,7 +245,7 @@ export default function GenresAndTagsView() {
   }
 
   return (
-    <div className="admin-page flex flex-col gap-5" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="admin-page flex flex-col gap-5">
       <p style={{ margin: 0, fontSize: 13, color: '#6B7280', lineHeight: 1.55 }}>
         Manage catalog genres and book tags. Changes save automatically and appear in the library when books are connected.
       </p>
