@@ -10,16 +10,12 @@ const exploreLinks = [
 const Footer = () => {
   return (
     <footer
-      className="font-sans text-[#F5D9A0]"
-      style={{
-        background: '#3D2314',
-        padding: '48px 0 32px',
-        fontFamily: "'Nunito', sans-serif",
-      }}
+      className="font-sans bg-[#3D2314] py-8 text-[#F5D9A0] sm:py-12"
+      style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      <div className="page-gutter mb-10 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-10">
+      <div className="page-gutter mb-8 grid grid-cols-1 gap-8 sm:mb-10 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] sm:gap-10">
         <div>
-          <div className="font-pictoria mb-2.5 text-[22px] font-semibold text-[#F5D9A0]">Pictoria</div>
+          <div className="font-pictoria mb-2.5 text-xl font-semibold text-[#F5D9A0] sm:text-[22px]">Pictoria</div>
           <p className="text-[13px] leading-relaxed text-[#9B6B4A]">
             A warm, illustrated library for curious readers who believe every story deserves beautiful art.
           </p>

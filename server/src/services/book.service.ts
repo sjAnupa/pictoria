@@ -3,6 +3,8 @@ import { Book, IBook, BookStatus } from '../models/Book.model'
 import { Chapter, IChapter } from '../models/Chapter.model'
 import { ReadingProgress } from '../models/ReadingProgress.model'
 import { Bookmark } from '../models/Bookmark.model'
+import { BookLike } from '../models/BookLike.model'
+import { SavedBook } from '../models/SavedBook.model'
 import { normalizeMediaUrl, normalizeMediaUrls } from '../config/storage'
 import { generateSlug } from '../utils/generateSlug'
 import { deleteStoredImage, uploadCoverImage } from './storage.service'
@@ -26,9 +28,11 @@ export async function findAllBooks(query: BookListQuery) {
 
   const filter: Record<string, unknown> = {}
 
-  if (query.status && query.status !== 'all') {
+  if (query.status === 'all') {
+    // no status filter — used for admin catalog preview and admin panel
+  } else if (query.status) {
     filter.status = query.status as BookStatus
-  } else if (!query.status) {
+  } else {
     filter.status = 'published'
   }
 
@@ -54,8 +58,13 @@ export async function findAllBooks(query: BookListQuery) {
   }
 }
 
-export async function findBookBySlug(slug: string) {
-  const book = await Book.findOne({ slug, status: 'published' }).lean()
+export async function findBookBySlug(slug: string, catalogAdminPreview = false) {
+  const filter: Record<string, unknown> = { slug }
+  if (!catalogAdminPreview) {
+    filter.status = 'published'
+  }
+
+  const book = await Book.findOne(filter).lean()
   if (!book) return null
 
   const chapters = await Chapter.find({ bookId: book._id })
@@ -70,10 +79,39 @@ export async function findBookBySlug(slug: string) {
   }
 }
 
-export async function findChapterForReading(bookId: string, chapterNumber: number) {
+export async function findBookForAdminEdit(id: string) {
+  if (!Types.ObjectId.isValid(id)) return null
+
+  const book = await Book.findById(id).lean()
+  if (!book) return null
+
+  const chapters = await Chapter.find({ bookId: book._id })
+    .sort({ chapterNumber: 1 })
+    .lean()
+
+  return {
+    ...book,
+    coverImageUrl: normalizeMediaUrl(book.coverImageUrl),
+    chapters: chapters.map((chapter) => ({
+      ...chapter,
+      pageImagePreviewUrls: normalizeMediaUrls(chapter.pageImageUrls),
+    })),
+  }
+}
+
+export async function findChapterForReading(
+  bookId: string,
+  chapterNumber: number,
+  catalogAdminPreview = false,
+) {
   if (!Types.ObjectId.isValid(bookId)) return null
 
-  const book = await Book.findOne({ _id: bookId, status: 'published' }).lean()
+  const bookFilter: Record<string, unknown> = { _id: bookId }
+  if (!catalogAdminPreview) {
+    bookFilter.status = 'published'
+  }
+
+  const book = await Book.findOne(bookFilter).lean()
   if (!book) return null
 
   const chapter = await Chapter.findOne({ bookId: book._id, chapterNumber }).lean()
@@ -84,6 +122,8 @@ export async function findChapterForReading(bookId: string, chapterNumber: numbe
       _id: book._id,
       slug: book.slug,
       title: book.title,
+      accessType: book.accessType,
+      freeChapterLimit: book.freeChapterLimit,
     },
     chapter: {
       ...chapter,
@@ -123,15 +163,20 @@ export async function createBookRecord(
     title: input.title,
     slug,
     author: input.author,
+    publisher: input.publisher?.trim() ?? '',
     description: input.description,
+    longDescription: input.longDescription,
     coverImageUrl,
     genres: parseStringArray(input.genres),
     tags: parseStringArray(input.tags),
     language: input.language ?? 'English',
     publicationYear: input.publicationYear,
+    pageCount: input.pageCount ?? 0,
     freeChapterLimit: input.freeChapterLimit ?? 3,
     accessType: input.accessType ?? 'free',
     status: input.status ?? 'draft',
+    featured: input.featured ?? false,
+    newArrival: input.newArrival ?? false,
     uploadedBy,
   })
 
@@ -145,14 +190,19 @@ export async function updateBookRecord(
 ) {
   if (input.title !== undefined) book.title = input.title
   if (input.author !== undefined) book.author = input.author
+  if (input.publisher !== undefined) book.publisher = input.publisher.trim()
   if (input.description !== undefined) book.description = input.description
+  if (input.longDescription !== undefined) book.longDescription = input.longDescription
   if (input.language !== undefined) book.language = input.language
   if (input.publicationYear !== undefined) book.publicationYear = input.publicationYear
+  if (input.pageCount !== undefined) book.pageCount = input.pageCount
   if (input.freeChapterLimit !== undefined) book.freeChapterLimit = input.freeChapterLimit
   if (input.accessType !== undefined) book.accessType = input.accessType
   if (input.status !== undefined) book.status = input.status
   if (input.genres !== undefined) book.genres = parseStringArray(input.genres)
   if (input.tags !== undefined) book.tags = parseStringArray(input.tags)
+  if (input.featured !== undefined) book.featured = input.featured
+  if (input.newArrival !== undefined) book.newArrival = input.newArrival
 
   if (input.title) {
     book.slug = await ensureUniqueSlug(input.title, String(book._id))
@@ -181,6 +231,8 @@ export async function deleteBookRecord(book: IBook) {
     Chapter.deleteMany({ bookId: book._id }),
     ReadingProgress.deleteMany({ bookId: book._id }),
     Bookmark.deleteMany({ bookId: book._id }),
+    BookLike.deleteMany({ bookId: book._id }),
+    SavedBook.deleteMany({ bookId: book._id }),
     book.deleteOne(),
   ])
 }

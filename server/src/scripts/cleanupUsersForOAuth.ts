@@ -12,6 +12,8 @@ import { User } from '../models/User.model'
 import { ReadingProgress } from '../models/ReadingProgress.model'
 import { ReadingEvent } from '../models/ReadingEvent.model'
 import { Bookmark } from '../models/Bookmark.model'
+import { BookLike } from '../models/BookLike.model'
+import { SavedBook } from '../models/SavedBook.model'
 
 dotenv.config()
 
@@ -42,27 +44,35 @@ async function cleanupUsers() {
     }
 
     if (dryRun) {
-      const [progressCount, eventCount, bookmarkCount] = await Promise.all([
+      const [progressCount, eventCount, bookmarkCount, likeCount, savedCount] = await Promise.all([
         ReadingProgress.countDocuments(),
         ReadingEvent.countDocuments(),
         Bookmark.countDocuments(),
+        BookLike.countDocuments(),
+        SavedBook.countDocuments(),
       ])
-      console.log(`\nWould also delete ${progressCount} progress, ${eventCount} events, ${bookmarkCount} bookmarks.`)
+      console.log(
+        `\nWould also delete ${progressCount} progress, ${eventCount} events, ${bookmarkCount} bookmarks, ${likeCount} likes, ${savedCount} saved books.`,
+      )
       console.log('Dry run — no changes written.')
       await mongoose.disconnect()
       return
     }
 
-    const [progress, events, bookmarks, usersDeleted] = await Promise.all([
+    const [progress, events, bookmarks, likes, saved, usersDeleted] = await Promise.all([
       ReadingProgress.deleteMany({}),
       ReadingEvent.deleteMany({}),
       Bookmark.deleteMany({}),
+      BookLike.deleteMany({}),
+      SavedBook.deleteMany({}),
       User.deleteMany({}),
     ])
     console.log(`\nDeleted ${usersDeleted.deletedCount} users`)
     console.log(`Deleted ${progress.deletedCount} progress records`)
     console.log(`Deleted ${events.deletedCount} reading events`)
     console.log(`Deleted ${bookmarks.deletedCount} bookmarks`)
+    console.log(`Deleted ${likes.deletedCount} likes`)
+    console.log(`Deleted ${saved.deletedCount} saved books`)
     console.log('\nDatabase is empty of users and reading activity. Sign in with Google to create a fresh account.')
     await mongoose.disconnect()
     return
@@ -88,16 +98,20 @@ async function cleanupUsers() {
   }
 
   if (removeIds.length > 0) {
-    const [progress, events, bookmarks, users] = await Promise.all([
+    const [progress, events, bookmarks, likes, saved, users] = await Promise.all([
       ReadingProgress.deleteMany({ userId: { $in: removeIds } }),
       ReadingEvent.deleteMany({ userId: { $in: removeIds } }),
       Bookmark.deleteMany({ userId: { $in: removeIds } }),
+      BookLike.deleteMany({ userId: { $in: removeIds } }),
+      SavedBook.deleteMany({ userId: { $in: removeIds } }),
       User.deleteMany({ _id: { $in: removeIds } }),
     ])
     console.log(`\nDeleted ${users.deletedCount} users`)
     console.log(`Deleted ${progress.deletedCount} progress records`)
     console.log(`Deleted ${events.deletedCount} reading events`)
     console.log(`Deleted ${bookmarks.deletedCount} bookmarks`)
+    console.log(`Deleted ${likes.deletedCount} likes`)
+    console.log(`Deleted ${saved.deletedCount} saved books`)
   } else {
     console.log('\nNo users to delete.')
   }

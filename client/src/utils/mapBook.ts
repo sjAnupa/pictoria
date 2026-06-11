@@ -16,6 +16,7 @@ export function mapApiBook(raw: ApiBookRecord): Book {
     slug: raw.slug,
     title: raw.title,
     author: raw.author,
+    publisher: raw.publisher,
     genre: raw.genres[0] ?? 'General',
     coverImage: resolveMediaUrl(raw.coverImageUrl),
     description: raw.description,
@@ -27,6 +28,7 @@ export function mapApiBook(raw: ApiBookRecord): Book {
     chapters: chaptersFromApi,
     status: STATUS_LABEL[raw.status] ?? 'Published',
     accessType: raw.accessType,
+    freeChapterLimit: raw.freeChapterLimit ?? 3,
     featured: Boolean(raw.featured),
     isNew: Boolean(raw.newArrival),
   }

@@ -7,6 +7,7 @@ export interface IBook extends Document {
   title: string
   slug: string
   author: string
+  publisher: string
   description: string
   longDescription?: string
   coverImageUrl: string
@@ -36,6 +37,7 @@ const BookSchema = new Schema<IBook>(
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     author: { type: String, required: true, trim: true },
+    publisher: { type: String, required: true, trim: true, default: '' },
     description: { type: String, required: true },
     coverImageUrl: { type: String, required: true },
     genres: { type: [String], default: [] },

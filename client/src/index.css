@@ -8,11 +8,129 @@
   body {
     @apply antialiased bg-[#FDF0D5] text-[#3D2314];
   }
+
+  /*
+   * Standard horizontal gutters (public pages only).
+   * Mobile / small tablet: fixed 16px → 32px (unchanged).
+   * Desktop (lg+): fluid clamp(3rem, 5vw, 5rem) — 48–80px, common on content sites.
+   */
+  :root {
+    --page-gutter-inline: 1rem;
+    --page-content-max: 100%;
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --page-gutter-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --page-gutter-inline: clamp(3rem, 5vw, 5rem);
+      --page-content-max: 1280px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    :root {
+      --page-gutter-inline: clamp(4rem, 6vw, 6rem);
+      --page-content-max: 1320px;
+    }
+  }
 }
 
 /* Shared horizontal rhythm for all public (non-admin) pages */
 @layer components {
+  .page-gutter,
+  .page-gutter-inline {
+    padding-left: max(var(--page-gutter-inline), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--page-gutter-inline), env(safe-area-inset-right, 0px));
+  }
+
   .page-gutter {
-    @apply mx-auto w-full max-w-[min(100%,1520px)] px-8 sm:px-12 md:px-16 lg:px-20 xl:px-28 2xl:px-36;
+    @apply mx-auto w-full;
+    max-width: min(100%, var(--page-content-max));
+  }
+
+  /* Book grids: 2 cols on phones, auto-fill from sm+ */
+  .book-grid {
+    @apply grid gap-4 min-w-0 sm:gap-6;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 480px) {
+    .book-grid {
+      grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .book-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+  }
+
+  .book-grid > a {
+    @apply flex h-full min-h-0;
+  }
+
+  /* Admin portal — responsive layout */
+  .admin-page {
+    @apply min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6;
+  }
+
+  .admin-stat-grid {
+    @apply mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5 xl:grid-cols-4;
+  }
+
+  .admin-chart-grid {
+    @apply grid grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)];
+  }
+
+  .admin-dashboard-bottom {
+    @apply grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)];
+  }
+
+  .admin-form-grid {
+    @apply grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:gap-5;
+  }
+
+  .admin-toolbar {
+    @apply mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+
+  .admin-table-wrap {
+    @apply -mx-1 overflow-x-auto px-1;
+  }
+
+  .admin-table-wrap table {
+    min-width: 640px;
+  }
+
+  .admin-form-header {
+    @apply sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-[#E8C98A] bg-[#FEF8EE] px-4 py-3 sm:gap-3 sm:px-6;
+  }
+}
+
+@keyframes adminFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes categoryDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

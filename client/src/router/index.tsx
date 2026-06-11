@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import AdminPanel from '../pages/admin/AdminPanel'
 import AdminRoute from '../components/auth/AdminRoute'
 import GuestRoute from '../components/auth/GuestRoute'
+import OptionalAuthBootstrap from '../components/auth/OptionalAuthBootstrap'
 import ProtectedRoute from '../components/auth/ProtectedRoute'
 import BookDetail from '../pages/BookDetail'
 import Home from '../pages/Home'
@@ -35,22 +36,27 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        element: <ProtectedRoute />,
+        element: <OptionalAuthBootstrap />,
         children: [
           { index: true, element: <Home /> },
           { path: 'home', element: <Navigate to="/" replace /> },
-          { path: 'welcome', element: <Landing /> },
           { path: 'library', element: <LibraryPage /> },
           { path: 'books/:slug', element: <BookDetail /> },
           { path: 'read/:bookId/chapter/:chapterNumber', element: <Reader /> },
-          { path: 'account', element: <AccountPage /> },
           {
-            path: 'admin',
-            element: (
-              <AdminRoute>
-                <AdminPanel />
-              </AdminRoute>
-            ),
+            element: <ProtectedRoute />,
+            children: [
+              { path: 'welcome', element: <Landing /> },
+              { path: 'account', element: <AccountPage /> },
+              {
+                path: 'admin',
+                element: (
+                  <AdminRoute>
+                    <AdminPanel />
+                  </AdminRoute>
+                ),
+              },
+            ],
           },
         ],
       },

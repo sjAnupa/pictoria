@@ -1,14 +1,21 @@
 import { Router } from 'express'
 import * as bookController from '../controllers/book.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
+import { optionalAuthMiddleware } from '../middleware/optionalAuth.middleware'
 import { requireRole } from '../middleware/role.middleware'
 import { uploadSingle } from '../middleware/upload.middleware'
 
 const router = Router()
 
 router.get('/catalog-stats', bookController.getCatalogStats)
-router.get('/', bookController.getAllBooks)
-router.get('/:slug', bookController.getBookBySlug)
+router.get(
+  '/manage/:id',
+  authMiddleware,
+  requireRole('admin'),
+  bookController.getBookForAdminEdit,
+)
+router.get('/', optionalAuthMiddleware, bookController.getAllBooks)
+router.get('/:slug', optionalAuthMiddleware, bookController.getBookBySlug)
 router.post(
   '/',
   authMiddleware,

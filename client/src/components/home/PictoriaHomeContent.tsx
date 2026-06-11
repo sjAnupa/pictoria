@@ -28,13 +28,7 @@ export default function PictoriaHomeContent() {
     >
       {/* ===== HERO SECTION ===== */}
       <section
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          minHeight: 580,
-          display: "flex",
-          alignItems: "center",
-        }}
+        className="relative flex min-h-0 items-center overflow-hidden py-10 sm:py-12 lg:min-h-[520px] lg:py-14"
       >
         {/* Watercolor parchment background */}
         <div
@@ -264,13 +258,14 @@ export default function PictoriaHomeContent() {
               style={{
                 background: "linear-gradient(145deg, #F5D9A0 0%, #EEC87A 50%, #E8B84B 100%)",
                 borderRadius: 24,
-                padding: "48px 56px 40px",
+                padding: "24px 20px 20px",
                 border: "2.5px solid #C9952A",
                 boxShadow:
                   "0 20px 60px rgba(90,40,10,0.22), inset 0 1px 0 rgba(255,230,160,0.6)",
                 position: "relative",
                 overflow: "hidden",
               }}
+              className="sm:!p-10 md:!px-12 md:!pb-10"
             >
               {/* Watercolor texture inside card */}
               <div
@@ -391,15 +386,8 @@ export default function PictoriaHomeContent() {
       {/* ===== FEATURED BOOKS ===== */}
       <section id="featured-reads" className="scroll-mt-[88px]" style={{ padding: "32px 0 48px" }}>
         <div className="page-gutter">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 28,
-            }}
-          >
-            <div>
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-7">
+            <div className="min-w-0">
               <div
                 style={{
                   display: "flex",
@@ -421,43 +409,19 @@ export default function PictoriaHomeContent() {
                   Editor's Pick
                 </span>
               </div>
-              <h2
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontWeight: 700,
-                  fontSize: 28,
-                  color: "#3D2314",
-                }}
-              >
+              <h2 className="font-pictoria text-[clamp(1.35rem,3vw,1.75rem)] font-bold text-[#3D2314]">
                 Featured Reads
               </h2>
             </div>
             <Link
               to="/library"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                background: "transparent",
-                border: "none",
-                color: "#8B2635",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "'Nunito', sans-serif",
-                textDecoration: "none",
-              }}
+              className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-[#8B2635] no-underline"
+              style={{ fontFamily: "'Nunito', sans-serif" }}
             >
               Open catalog <ChevronRight size={14} />
             </Link>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: 24,
-            }}
-          >
+          <div className="book-grid">
             {featuredLoading ? (
               <p className="text-sm text-[#9B6B4A]">Loading featured reads…</p>
             ) : featuredBooks.length === 0 ? (
@@ -473,11 +437,9 @@ export default function PictoriaHomeContent() {
 
       {/* ===== BANNER: Reading Quote ===== */}
       <section
+        className="page-gutter-inline relative overflow-hidden py-10 sm:py-14"
         style={{
           background: "linear-gradient(135deg, #3D2314 0%, #6B4226 100%)",
-          padding: "56px 32px",
-          position: "relative",
-          overflow: "hidden",
         }}
       >
         <div
@@ -530,15 +492,8 @@ export default function PictoriaHomeContent() {
       {/* ===== NEW ARRIVALS ===== */}
       <section id="new-arrivals" className="scroll-mt-[88px]" style={{ padding: "48px 0 56px" }}>
         <div className="page-gutter">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 28,
-            }}
-          >
-            <div>
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-7">
+            <div className="min-w-0">
               <div
                 style={{
                   display: "flex",
@@ -560,40 +515,19 @@ export default function PictoriaHomeContent() {
                   Just Added
                 </span>
               </div>
-              <h2
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontWeight: 700,
-                  fontSize: 28,
-                  color: "#3D2314",
-                }}
-              >
+              <h2 className="font-pictoria text-[clamp(1.35rem,3vw,1.75rem)] font-bold text-[#3D2314]">
                 New Arrivals
               </h2>
             </div>
             <Link
               to="/library"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#8B2635",
-                textDecoration: "none",
-                fontFamily: "'Nunito', sans-serif",
-              }}
+              className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-[#8B2635] no-underline"
+              style={{ fontFamily: "'Nunito', sans-serif" }}
             >
               Open catalog <ChevronRight size={14} />
             </Link>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: 24,
-            }}
-          >
+          <div className="book-grid">
             {newLoading ? (
               <p className="text-sm text-[#9B6B4A]">Loading new arrivals…</p>
             ) : newBooks.length === 0 ? (

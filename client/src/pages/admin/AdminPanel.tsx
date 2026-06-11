@@ -1,25 +1,20 @@
-import { useState, useRef, useCallback, useEffect, type CSSProperties, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { AdminBackButton, AdminButton, AdminModalActions, AdminUserChip, PublicSiteButton } from './adminUi'
+import { AdminButton, AdminModalActions, AdminUserChip, PublicSiteButton } from './adminUi'
 import {
   LayoutDashboard,
   BookOpen,
   Users,
   Tags,
   ChevronDown,
-  ChevronUp,
   Search,
   Plus,
   Pencil,
   Trash2,
-  X,
-  Image as ImageIcon,
-  Check,
   TrendingUp,
   Eye,
-  Upload,
   Globe,
   Lock,
   Crown,
@@ -28,7 +23,9 @@ import {
   EyeOff,
   ShieldCheck,
   Loader2,
+  Menu,
 } from "lucide-react";
+import { ADMIN_FONT, adminTheme } from './adminTheme'
 import { useAuthStore } from '../../store/authStore'
 import { adminRoleLabel, canManageAdminRoles } from '../../utils/authPermissions'
 import {
@@ -37,6 +34,7 @@ import {
   userAvatarColor,
   userInitials,
   UserServiceError,
+  type AccountTypeFilter,
 } from '../../services/userService'
 import {
   BarChart,
@@ -56,40 +54,11 @@ import type { BookStatus } from '../../types/book.types'
 import GenresAndTagsView from './views/GenresAndTagsView'
 import { useAdminBookCount, useAdminBookMutations, useAdminBooks, useAdminDashboard } from '../../hooks/useAdminBooks'
 import type { AdminBookRow } from '../../utils/mapAdminBook'
-import { fetchCategories } from '../../services/categoryService'
+import BookFormView from './views/BookFormView'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AdminView = "dashboard" | "books" | "book-form" | "users" | "genresTags";
-
-interface ChapterImage {
-  id: string;
-  name: string;
-  url: string;
-}
-
-interface Chapter {
-  id: string;
-  number: number;
-  title: string;
-  images: ChapterImage[];
-  expanded: boolean;
-}
-
-interface BookFormData {
-  title: string;
-  author: string;
-  year: string;
-  pages: string;
-  genre: string;
-  status: BookStatus;
-  accessType: "free" | "registered" | "premium";
-  tags: string;
-  description: string;
-  longDescription: string;
-  coverPreview: string | null;
-  chapters: Chapter[];
-}
 
 interface AdminBook extends AdminBookRow {}
 
@@ -116,7 +85,7 @@ function StatusBadge({ status }: { status: BookStatus }) {
 
 function SectionCard({ title, children, action }: { title?: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+    <div style={{ background: adminTheme.surface, border: `1px solid ${adminTheme.border}`, borderRadius: 10, overflow: "hidden", boxShadow: "0 1px 3px rgba(90,40,10,0.06)" }}>
       {title && (
         <div style={{ padding: "14px 18px", borderBottom: "1px solid #F3F4F6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{title}</span>
@@ -130,7 +99,7 @@ function SectionCard({ title, children, action }: { title?: string; children: Re
 
 function StatCard({ icon, label, value, sub, color }: { icon: ReactNode; label: string; value: string; sub: string; color: string }) {
   return (
-    <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 10, padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ background: adminTheme.surface, border: `1px solid ${adminTheme.border}`, borderRadius: 10, padding: "18px 20px", boxShadow: "0 1px 3px rgba(90,40,10,0.06)", display: "flex", alignItems: "center", gap: 14 }}>
       <div style={{ width: 44, height: 44, borderRadius: 10, background: `${color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <div style={{ color }}>{icon}</div>
       </div>
@@ -143,59 +112,71 @@ function StatCard({ icon, label, value, sub, color }: { icon: ReactNode; label: 
   );
 }
 
-function FormField({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: ReactNode }) {
-  return (
-    <div>
-      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5, letterSpacing: "0.01em" }}>
-        {label}{required && <span style={{ color: "#EF4444", marginLeft: 3 }}>*</span>}
-      </label>
-      {children}
-      {hint && <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{hint}</div>}
-    </div>
-  );
+type TopReaderRow = {
+  name: string
+  initials: string
+  books: number
+  status: 'Active' | 'Inactive'
 }
 
-const inputStyle: CSSProperties = {
-  width: "100%", padding: "8px 11px", fontSize: 13, color: "#111827",
-  background: "#FFFFFF", border: "1px solid #D1D5DB", borderRadius: 7,
-  outline: "none", fontFamily: "'Inter', sans-serif", boxSizing: "border-box",
-  transition: "border-color 0.15s",
-};
+const TOP_READER_AVATAR_COLORS = ['#8B2635', '#C4776A', '#C9952A', '#6B4226', '#9B6B4A']
 
-function StyledInput({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
-  const [focused, setFocused] = useState(false);
+function TopReadersPanel({ readers }: { readers: TopReaderRow[] }) {
   return (
-    <input
-      type={type} value={value} onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      style={{ ...inputStyle, borderColor: focused ? "#4F46E5" : "#D1D5DB", boxShadow: focused ? "0 0 0 3px rgba(79,70,229,0.1)" : "none" }}
-      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-    />
-  );
-}
-
-function StyledTextarea({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <textarea
-      rows={rows} value={value} onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6, borderColor: focused ? "#4F46E5" : "#D1D5DB", boxShadow: focused ? "0 0 0 3px rgba(79,70,229,0.1)" : "none" }}
-      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-    />
-  );
-}
-
-function StyledSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { label: string; value: string }[] }) {
-  return (
-    <div style={{ position: "relative" }}>
-      <select value={value} onChange={(e) => onChange(e.target.value)}
-        style={{ ...inputStyle, paddingRight: 32, appearance: "none", cursor: "pointer" }}>
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      <ChevronDown size={13} color="#6B7280" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-    </div>
-  );
+    <SectionCard title="Top readers">
+      <div className="divide-y divide-[#F3F4F6] p-1 sm:p-2">
+        {readers.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm" style={{ color: adminTheme.textSoft }}>
+            No reading activity yet.
+          </p>
+        ) : (
+          readers.map((user, i) => (
+            <div
+              key={`${user.name}-${i}`}
+              className="flex items-center gap-3 px-3 py-3 sm:gap-3.5 sm:px-4"
+            >
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold sm:h-8 sm:w-8"
+                style={{
+                  background: i < 3 ? `${adminTheme.primary}18` : '#FDF0D5',
+                  color: i < 3 ? adminTheme.primary : adminTheme.textSoft,
+                }}
+              >
+                {i + 1}
+              </div>
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white sm:h-10 sm:w-10"
+                style={{ background: TOP_READER_AVATAR_COLORS[i % TOP_READER_AVATAR_COLORS.length] }}
+              >
+                {user.initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p
+                  className="truncate text-sm font-semibold"
+                  style={{ color: adminTheme.text }}
+                  title={user.name}
+                >
+                  {user.name}
+                </p>
+                <p className="mt-0.5 text-xs" style={{ color: adminTheme.textSoft }}>
+                  {user.books} {user.books === 1 ? 'book' : 'books'} in progress
+                </p>
+              </div>
+              <span
+                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-[11px]"
+                style={{
+                  background: user.status === 'Active' ? '#DCFCE7' : '#F3F4F6',
+                  color: user.status === 'Active' ? '#15803D' : '#6B7280',
+                }}
+              >
+                {user.status}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </SectionCard>
+  )
 }
 
 // ─── Dashboard View ────────────────────────────────────────────────────────────
@@ -278,38 +259,36 @@ function DashboardView() {
   };
 
   return (
-    <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
+    <div className="admin-page">
       {isLoading ? (
-        <p style={{ fontSize: 13, color: "#6B7280" }}>Loading dashboard…</p>
+        <p style={{ fontSize: 13, color: adminTheme.textSoft }}>Loading dashboard…</p>
       ) : isError ? (
         <p style={{ fontSize: 13, color: "#B91C1C" }}>Could not load dashboard data.</p>
       ) : (
       <>
-      {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard icon={<BookOpen size={20} />}    label="Total Books"     value={String(totals?.books ?? 0)}     sub="In catalog"    color="#4F46E5" />
-        <StatCard icon={<Users size={20} />}        label="Registered Users" value={(totals?.users ?? 0).toLocaleString()} sub="Readers only"  color="#059669" />
-        <StatCard icon={<TrendingUp size={20} />}  label="Total Reads"     value={(totals?.totalReads ?? 0).toLocaleString()} sub="Start events" color="#D97706" />
-        <StatCard icon={<Eye size={20} />}         label="Active Today"    value={String(totals?.activeToday ?? 0)}    sub="Readers today"  color="#DB2777" />
+      <div className="admin-stat-grid">
+        <StatCard icon={<BookOpen size={20} />}    label="Total Books"     value={String(totals?.books ?? 0)}     sub="In catalog"    color={adminTheme.primary} />
+        <StatCard icon={<Users size={20} />}        label="Registered readers" value={(totals?.users ?? 0).toLocaleString()} sub="Reader accounts"  color="#059669" />
+        <StatCard icon={<TrendingUp size={20} />}  label="Total Reads"     value={(totals?.totalReads ?? 0).toLocaleString()} sub="Start events" color={adminTheme.accent} />
+        <StatCard icon={<Eye size={20} />}         label="Active Today"    value={String(totals?.activeToday ?? 0)}    sub="Readers today"  color="#C4776A" />
       </div>
 
-      {/* Row 2: Area chart + Pie chart */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 14, marginBottom: 14 }}>
+      <div className="admin-chart-grid mb-3.5">
         <SectionCard title="Reading Activity — Last 14 Days">
           <div style={{ padding: "16px 4px 8px" }}>
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={DAILY_READS} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="readGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#4F46E5" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.02} />
+                    <stop offset="5%"  stopColor={adminTheme.primary} stopOpacity={0.18} />
+                    <stop offset="95%" stopColor={adminTheme.primary} stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} interval={1} />
                 <YAxis tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="reads" stroke="#4F46E5" strokeWidth={2} fill="url(#readGrad)" dot={false} activeDot={{ r: 4, fill: "#4F46E5" }} />
+                <Area type="monotone" dataKey="reads" stroke={adminTheme.primary} strokeWidth={2} fill="url(#readGrad)" dot={false} activeDot={{ r: 4, fill: adminTheme.primary }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -337,41 +316,22 @@ function DashboardView() {
         </SectionCard>
       </div>
 
-      {/* Row 3: Bar chart + Top readers */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 14 }}>
+      <div className="admin-dashboard-bottom">
         <SectionCard title="Most Read Books">
           <div style={{ padding: "16px 4px 8px" }}>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={MOST_READ_BOOKS} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`} />
-                <YAxis type="category" dataKey="title" tick={{ fontSize: 11, fill: "#374151" }} axisLine={false} tickLine={false} width={165} />
+                <YAxis type="category" dataKey="title" tick={{ fontSize: 11, fill: "#374151" }} axisLine={false} tickLine={false} width={100} />
                 <Tooltip content={<BarTooltip />} />
-                <Bar dataKey="reads" fill="#4F46E5" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar dataKey="reads" fill={adminTheme.primary} radius={[0, 4, 4, 0]} barSize={14} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </SectionCard>
 
-        <SectionCard title="Top Readers">
-          <div style={{ padding: "8px 0" }}>
-            {TOP_READERS.map((user, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", borderBottom: i < TOP_READERS.length - 1 ? "1px solid #F9FAFB" : "none" }}>
-                <div style={{ width: 20, textAlign: "center", fontSize: 11, fontWeight: 700, color: i < 3 ? "#4F46E5" : "#9CA3AF" }}>{i + 1}</div>
-                <div style={{ width: 30, height: 30, borderRadius: "50%", background: ["#7C3AED","#0284C7","#059669","#D97706","#DB2777"][i], display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                  {user.initials}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF" }}>{user.books} books</div>
-                </div>
-                <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: user.status === "Active" ? "#DCFCE7" : "#F3F4F6", color: user.status === "Active" ? "#15803D" : "#6B7280" }}>
-                  {user.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
+        <TopReadersPanel readers={TOP_READERS} />
       </div>
       </>
       )}
@@ -430,29 +390,30 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
   }
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
-      {/* Action bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ flex: 1, maxWidth: 300, display: "flex", alignItems: "center", gap: 8, background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 7, padding: "0 11px", height: 36 }}>
+    <div className="admin-page">
+      <div className="admin-toolbar">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#E8C98A] bg-[#FEF8EE] px-3 sm:max-w-xs" style={{ height: 36 }}>
           <Search size={13} color="#9CA3AF" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by title or author..." style={{ border: "none", outline: "none", fontSize: 13, color: "#111827", background: "transparent", fontFamily: "'Inter', sans-serif", flex: 1, minWidth: 0 }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by title or author..." className="min-w-0 flex-1 border-none bg-transparent text-sm outline-none" style={{ color: adminTheme.text, fontFamily: ADMIN_FONT }} />
         </div>
-        <div style={{ position: "relative" }}>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ appearance: "none", background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 7, padding: "0 32px 0 11px", height: 36, fontSize: 13, color: "#374151", cursor: "pointer", fontFamily: "'Inter', sans-serif", outline: "none" }}>
+        <div className="relative w-full sm:w-auto">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-9 w-full cursor-pointer appearance-none rounded-lg border border-[#E8C98A] bg-[#FEF8EE] pl-3 pr-8 text-sm outline-none sm:w-auto" style={{ color: adminTheme.textMuted, fontFamily: ADMIN_FONT }}>
             <option value="all">All Status</option>
             {Object.keys(STATUS_CONFIG).map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <ChevronDown size={13} color="#6B7280" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
         </div>
-        <div style={{ flex: 1 }} />
-        <div style={{ fontSize: 12, color: "#6B7280" }}>{filtered.length} books</div>
-        <AdminButton variant="primary" icon={Plus} onClick={onAdd} style={{ height: 36, padding: '0 16px' }}>
-          Add new book
-        </AdminButton>
+        <div className="hidden flex-1 sm:block" />
+        <div className="text-xs sm:text-sm" style={{ color: adminTheme.textSoft }}>{filtered.length} books</div>
+        <div className="w-full sm:w-auto">
+          <AdminButton variant="primary" icon={Plus} onClick={onAdd} style={{ height: 36, padding: '0 16px', width: '100%' }}>
+            Add new book
+          </AdminButton>
+        </div>
       </div>
 
-      {/* Table */}
       <SectionCard>
+        <div className="admin-table-wrap">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
@@ -553,6 +514,7 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
             ))}
           </tbody>
         </table>
+        </div>
         {filtered.length === 0 && (
           <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
             No books match your search.
@@ -587,381 +549,27 @@ function BooksView({ onAdd, onEdit }: { onAdd: () => void; onEdit: (book: AdminB
   );
 }
 
-// ─── Book Form View ────────────────────────────────────────────────────────────
-
-let _uid = 0;
-const uid = () => String(++_uid);
-
-function makeDefaultChapter(num: number): Chapter {
-  return { id: uid(), number: num, title: "", images: [], expanded: true };
-}
-
-function BookFormView({ editingBook, onBack }: { editingBook: AdminBook | null; onBack: () => void }) {
-  const isEdit = editingBook !== null;
-
-  const { data: genreCategories = [] } = useQuery({
-    queryKey: ['categories', 'genre'],
-    queryFn: () => fetchCategories('genre'),
-  })
-  const genreOptions = genreCategories
-    .filter((c) => c.isActive)
-    .map((c) => ({ value: c.name, label: c.name }))
-  const defaultGenre = genreOptions[0]?.value ?? ''
-
-  const [form, setForm] = useState<BookFormData>({
-    title:           isEdit ? editingBook!.title  : "",
-    author:          isEdit ? editingBook!.author : "",
-    year:            isEdit ? "2024" : "",
-    pages:           "",
-    genre:           isEdit ? editingBook!.genre  : defaultGenre,
-    status:          isEdit ? editingBook!.status : "Draft",
-    accessType:      isEdit ? (editingBook!.accessType as "free" | "registered" | "premium") : "free",
-    tags:            "",
-    description:     "",
-    longDescription: "",
-    coverPreview:    null,
-    chapters:        [makeDefaultChapter(1)],
-  });
-
-  useEffect(() => {
-    if (!isEdit && defaultGenre && !form.genre) {
-      setForm((f) => ({ ...f, genre: defaultGenre }))
-    }
-  }, [isEdit, defaultGenre, form.genre])
-
-  const coverInputRef = useRef<HTMLInputElement>(null);
-
-  const setField = <K extends keyof BookFormData>(key: K, val: BookFormData[K]) =>
-    setForm((f) => ({ ...f, [key]: val }));
-
-  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setField("coverPreview", url);
-  };
-
-  // Chapter management
-  const addChapter = () => {
-    const num = form.chapters.length + 1;
-    setField("chapters", [...form.chapters, makeDefaultChapter(num)]);
-  };
-
-  const removeChapter = (id: string) => {
-    const updated = form.chapters
-      .filter((c) => c.id !== id)
-      .map((c, i) => ({ ...c, number: i + 1 }));
-    setField("chapters", updated);
-  };
-
-  const updateChapterTitle = (id: string, title: string) => {
-    setField("chapters", form.chapters.map((c) => c.id === id ? { ...c, title } : c));
-  };
-
-  const toggleChapter = (id: string) => {
-    setField("chapters", form.chapters.map((c) => c.id === id ? { ...c, expanded: !c.expanded } : c));
-  };
-
-  const addImages = useCallback((chapterId: string, files: FileList) => {
-    const chapter = form.chapters.find((c) => c.id === chapterId);
-    if (!chapter) return;
-    const existing = chapter.images.length;
-    const newImages: ChapterImage[] = Array.from(files).map((file, i) => ({
-      id: uid(),
-      name: `ch_${chapter.number}_p_${existing + i + 1}`,
-      url: URL.createObjectURL(file),
-    }));
-    setField("chapters", form.chapters.map((c) =>
-      c.id === chapterId ? { ...c, images: [...c.images, ...newImages] } : c
-    ));
-  }, [form.chapters]);
-
-  const removeImage = (chapterId: string, imageId: string) => {
-    setField("chapters", form.chapters.map((c) => {
-      if (c.id !== chapterId) return c;
-      const remaining = c.images.filter((img) => img.id !== imageId);
-      // Re-index names
-      const renamed = remaining.map((img, i) => ({ ...img, name: `ch_${c.number}_p_${i + 1}` }));
-      return { ...c, images: renamed };
-    }));
-  };
-
-  return (
-    <div style={{ flex: 1, overflowY: "auto", background: "#F9FAFB", display: "flex", flexDirection: "column" }}>
-      {/* Sticky Form Header */}
-      <div style={{ background: "#FFFFFF", borderBottom: "1px solid #E5E7EB", padding: "12px 24px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 10, flexShrink: 0 }}>
-        <AdminBackButton label="Back to books" onClick={onBack} />
-        <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
-        <span style={{ fontSize: 12, color: "#9CA3AF" }}>Books</span>
-        <span style={{ fontSize: 12, color: "#9CA3AF" }}>/</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{isEdit ? "Edit Book" : "Add New Book"}</span>
-        <StatusBadge status={form.status} />
-        <div style={{ flex: 1 }} />
-        <PublicSiteButton variant="header" />
-        <AdminButton variant="secondary" onClick={onBack}>
-          Cancel
-        </AdminButton>
-        <AdminButton variant="secondary">
-          Save draft
-        </AdminButton>
-        <AdminButton variant="primary">
-          {isEdit ? "Save changes" : "Publish"}
-        </AdminButton>
-      </div>
-
-      {/* Two-column form body */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, padding: 24, alignItems: "start" }}>
-
-        {/* ── LEFT COLUMN ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Basic Info */}
-          <SectionCard title="Basic Information">
-            <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
-              <FormField label="Book Title" required>
-                <StyledInput value={form.title} onChange={(v) => setField("title", v)} placeholder="e.g. The Enchanted Kingdom" />
-              </FormField>
-              <FormField label="Author" required>
-                <StyledInput value={form.author} onChange={(v) => setField("author", v)} placeholder="e.g. Jane Smith" />
-              </FormField>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <FormField label="Publication Year">
-                  <StyledInput value={form.year} onChange={(v) => setField("year", v)} placeholder="e.g. 2024" type="number" />
-                </FormField>
-                <FormField label="Pages">
-                  <StyledInput value={form.pages} onChange={(v) => setField("pages", v)} placeholder="e.g. 280" type="number" />
-                </FormField>
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Description */}
-          <SectionCard title="Description">
-            <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
-              <FormField label="Short Description" hint="Appears on the book card — keep it under 200 characters">
-                <StyledTextarea value={form.description} onChange={(v) => setField("description", v)} placeholder="Brief synopsis of the book..." rows={3} />
-              </FormField>
-              <FormField label="Full Description" hint="Shown on the book detail page — be as descriptive as you like">
-                <StyledTextarea value={form.longDescription} onChange={(v) => setField("longDescription", v)} placeholder="Full story description, setting the scene for readers..." rows={6} />
-              </FormField>
-            </div>
-          </SectionCard>
-
-          {/* Chapters */}
-          <SectionCard
-            title={`Chapters (${form.chapters.length})`}
-            action={
-              <button onClick={addChapter} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", border: "1px solid #D1D5DB", borderRadius: 6, background: "#FFFFFF", fontSize: 12, fontWeight: 500, color: "#374151", cursor: "pointer", fontFamily: "'Inter', sans-serif", transition: "all 0.15s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#F3F4F6"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFFFF"; }}>
-                <Plus size={12} /> Add Chapter
-              </button>
-            }>
-            <div style={{ padding: "12px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
-              {form.chapters.map((chapter) => (
-                <ChapterPanel
-                  key={chapter.id}
-                  chapter={chapter}
-                  onToggle={() => toggleChapter(chapter.id)}
-                  onTitleChange={(t) => updateChapterTitle(chapter.id, t)}
-                  onRemove={() => removeChapter(chapter.id)}
-                  onAddImages={(files) => addImages(chapter.id, files)}
-                  onRemoveImage={(imgId) => removeImage(chapter.id, imgId)}
-                  canRemove={form.chapters.length > 1}
-                />
-              ))}
-            </div>
-          </SectionCard>
-        </div>
-
-        {/* ── RIGHT COLUMN ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Publication */}
-          <SectionCard title="Publication">
-            <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
-              <FormField label="Status">
-                <StyledSelect
-                  value={form.status}
-                  onChange={(v) => setField("status", v as BookStatus)}
-                  options={Object.keys(STATUS_CONFIG).map((s) => ({ value: s, label: s }))}
-                />
-                <div style={{ marginTop: 8 }}>
-                  <StatusBadge status={form.status} />
-                </div>
-              </FormField>
-              <FormField label="Access Type">
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 2 }}>
-                  {([
-                    { value: "free",       icon: <Globe size={13} />,  color: "#059669", label: "Free",       desc: "Anyone can read" },
-                    { value: "registered", icon: <Lock size={13} />,   color: "#D97706", label: "Registered", desc: "Login required"   },
-                    { value: "premium",    icon: <Crown size={13} />,  color: "#7C3AED", label: "Premium",    desc: "Premium members" },
-                  ] as const).map((opt) => (
-                    <button key={opt.value} onClick={() => setField("accessType", opt.value)}
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: `1.5px solid ${form.accessType === opt.value ? opt.color : "#E5E7EB"}`, borderRadius: 8, background: form.accessType === opt.value ? `${opt.color}0D` : "#FFFFFF", cursor: "pointer", fontFamily: "'Inter', sans-serif", textAlign: "left", width: "100%", transition: "all 0.15s" }}>
-                      <span style={{ color: opt.color }}>{opt.icon}</span>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: form.accessType === opt.value ? opt.color : "#374151" }}>{opt.label}</div>
-                        <div style={{ fontSize: 11, color: "#9CA3AF" }}>{opt.desc}</div>
-                      </div>
-                      {form.accessType === opt.value && <Check size={13} style={{ marginLeft: "auto", color: opt.color, flexShrink: 0 }} />}
-                    </button>
-                  ))}
-                </div>
-              </FormField>
-            </div>
-          </SectionCard>
-
-          {/* Cover Image */}
-          <SectionCard title="Cover Image">
-            <div style={{ padding: "16px 18px" }}>
-              {form.coverPreview ? (
-                <div style={{ position: "relative" }}>
-                  <img src={form.coverPreview} alt="Cover preview" style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 8, display: "block" }} />
-                  <button onClick={() => setField("coverPreview", null)} style={{ position: "absolute", top: 8, right: 8, width: 26, height: 26, borderRadius: "50%", background: "rgba(0,0,0,0.55)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-                    <X size={12} />
-                  </button>
-                  <button onClick={() => coverInputRef.current?.click()} style={{ marginTop: 10, width: "100%", padding: "7px 0", border: "1px solid #D1D5DB", borderRadius: 7, background: "#FFFFFF", fontSize: 12, fontWeight: 500, color: "#374151", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                    Replace Image
-                  </button>
-                </div>
-              ) : (
-                <div onClick={() => coverInputRef.current?.click()} style={{ border: "1.5px dashed #D1D5DB", borderRadius: 8, padding: "28px 16px", textAlign: "center", background: "#F9FAFB", cursor: "pointer", transition: "all 0.15s" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#4F46E5"; (e.currentTarget as HTMLElement).style.background = "#EEF2FF"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#D1D5DB"; (e.currentTarget as HTMLElement).style.background = "#F9FAFB"; }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 8, background: "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
-                    <ImageIcon size={20} color="#9CA3AF" />
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>
-                    Click to upload cover
-                  </div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>PNG, JPG · Recommended 400×560px</div>
-                </div>
-              )}
-              <input ref={coverInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleCoverUpload} />
-            </div>
-          </SectionCard>
-
-          {/* Categorization */}
-          <SectionCard title="Categorization">
-            <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
-              <FormField label="Genre" required>
-                {genreOptions.length === 0 ? (
-                  <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>
-                    No genres yet. Add genres under Genres &amp; tags first.
-                  </p>
-                ) : (
-                  <StyledSelect value={form.genre || defaultGenre} onChange={(v) => setField("genre", v)} options={genreOptions} />
-                )}
-              </FormField>
-              <FormField label="Tags" hint='Separate tags with commas, e.g. "magic, dragons, epic"'>
-                <StyledInput value={form.tags} onChange={(v) => setField("tags", v)} placeholder="magic, adventure, illustrated" />
-              </FormField>
-            </div>
-          </SectionCard>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Chapter Panel ─────────────────────────────────────────────────────────────
-
-function ChapterPanel({
-  chapter, onToggle, onTitleChange, onRemove, onAddImages, onRemoveImage, canRemove,
-}: {
-  chapter: Chapter;
-  onToggle: () => void;
-  onTitleChange: (t: string) => void;
-  onRemove: () => void;
-  onAddImages: (files: FileList) => void;
-  onRemoveImage: (id: string) => void;
-  canRemove: boolean;
-}) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [titleFocused, setTitleFocused] = useState(false);
-
-  return (
-    <div style={{ border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", background: "#FFFFFF" }}>
-      {/* Chapter Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: chapter.expanded ? "#F9FAFB" : "#FFFFFF", borderBottom: chapter.expanded ? "1px solid #E5E7EB" : "none" }}>
-        <button onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: 0, color: "#374151", flex: 1, textAlign: "left" }}>
-          <div style={{ width: 22, height: 22, borderRadius: 6, background: "#4F46E5", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
-            {chapter.number}
-          </div>
-          <input
-            value={chapter.title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            placeholder={`Chapter ${chapter.number} title...`}
-            style={{ flex: 1, border: "none", outline: titleFocused ? "1px solid #4F46E5" : "none", borderRadius: 4, padding: "3px 6px", fontSize: 13, fontWeight: 500, color: "#111827", background: "transparent", fontFamily: "'Inter', sans-serif", cursor: "text" }}
-            onFocus={() => setTitleFocused(true)}
-            onBlur={() => setTitleFocused(false)}
-          />
-          <span style={{ fontSize: 11, color: "#9CA3AF", whiteSpace: "nowrap", flexShrink: 0 }}>{chapter.images.length} images</span>
-          {chapter.expanded ? <ChevronUp size={14} color="#9CA3AF" style={{ flexShrink: 0 }} /> : <ChevronDown size={14} color="#9CA3AF" style={{ flexShrink: 0 }} />}
-        </button>
-        {canRemove && (
-          <button onClick={onRemove} title="Remove chapter" style={{ width: 24, height: 24, borderRadius: 5, border: "1px solid transparent", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF", transition: "all 0.15s", flexShrink: 0 }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#FEF2F2"; e.currentTarget.style.borderColor = "#FCA5A5"; e.currentTarget.style.color = "#EF4444"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}>
-            <Trash2 size={12} />
-          </button>
-        )}
-      </div>
-
-      {/* Chapter Body */}
-      {chapter.expanded && (
-        <div style={{ padding: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 10 }}>
-            Chapter Images
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-start" }}>
-            {chapter.images.map((img) => (
-              <div key={img.id} style={{ position: "relative", flexShrink: 0 }}>
-                <div style={{ width: 80, height: 105, borderRadius: 6, overflow: "hidden", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
-                  <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-                <button onClick={() => onRemoveImage(img.id)} title="Remove image" style={{ position: "absolute", top: -7, right: -7, width: 20, height: 20, borderRadius: "50%", background: "#EF4444", border: "2px solid #FFFFFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>
-                  <X size={9} />
-                </button>
-                <div style={{ fontSize: 9, color: "#9CA3AF", marginTop: 4, textAlign: "center", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {img.name}
-                </div>
-              </div>
-            ))}
-            {/* Add images button */}
-            <button onClick={() => fileRef.current?.click()} style={{ width: 80, height: 105, borderRadius: 6, border: "1.5px dashed #D1D5DB", background: "#F9FAFB", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: "#9CA3AF", transition: "all 0.15s", flexShrink: 0 }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#4F46E5"; (e.currentTarget as HTMLElement).style.color = "#4F46E5"; (e.currentTarget as HTMLElement).style.background = "#EEF2FF"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#D1D5DB"; (e.currentTarget as HTMLElement).style.color = "#9CA3AF"; (e.currentTarget as HTMLElement).style.background = "#F9FAFB"; }}>
-              <Upload size={16} />
-              <span style={{ fontSize: 10, fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>Add Images</span>
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) onAddImages(e.target.files); e.target.value = ""; }} />
-          </div>
-          {chapter.images.length > 0 && (
-            <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 10 }}>
-              Images are displayed in alphabetical order by name (ch_{chapter.number}_p_1, ch_{chapter.number}_p_2…)
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+// BookFormView lives in ./views/BookFormView.tsx
 
 // ─── Users View ────────────────────────────────────────────────────────────────
 
+const USER_FILTER_TABS: { id: AccountTypeFilter; label: string }[] = [
+  { id: 'all', label: 'All accounts' },
+  { id: 'readers', label: 'Readers' },
+  { id: 'admins', label: 'Admins' },
+]
+
 function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
   const queryClient = useQueryClient()
-  const [search, setSearch] = useState("")
+  const [search, setSearch] = useState('')
+  const [accountFilter, setAccountFilter] = useState<AccountTypeFilter>('all')
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [toggleError, setToggleError] = useState<string | null>(null)
   const currentUser = useAuthStore((s) => s.user)
 
   const usersQuery = useQuery({
-    queryKey: ['admin', 'users', 'readers', search],
-    queryFn: () => fetchUsers({ accountType: 'readers', search, limit: 100 }),
+    queryKey: ['admin', 'users', accountFilter, search],
+    queryFn: () => fetchUsers({ accountType: accountFilter, search, limit: 100 }),
   })
 
   const adminToggleMutation = useMutation({
@@ -979,38 +587,100 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
   const users = usersQuery.data?.users ?? []
   const totalCount = usersQuery.data?.totalCount ?? 0
 
-  const columns = canManageAdmins
-    ? ["User", "Email", "Joined", "Status", "Admin access"]
-    : ["User", "Email", "Joined", "Status"]
+  const showAdminToggle = canManageAdmins && (accountFilter === 'all' || accountFilter === 'readers')
+
+  const columns = showAdminToggle
+    ? ['User', 'Email', 'Joined', 'Status', 'Admin access']
+    : ['User', 'Email', 'Joined', 'Status']
 
   const statusColors: Record<string, { bg: string; text: string }> = {
-    Active:   { bg: "#DCFCE7", text: "#15803D" },
-    Inactive: { bg: "#F3F4F6", text: "#6B7280" },
+    Active: { bg: '#DCFCE7', text: '#15803D' },
+    Inactive: { bg: '#F3F4F6', text: '#6B7280' },
   }
 
-  return (
-    <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
-      {canManageAdmins ? (
-        <div style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 8, background: "#EEF2FF", border: "1px solid #C7D2FE", fontSize: 12, color: "#3730A3", display: "flex", alignItems: "center", gap: 8 }}>
-          <ShieldCheck size={16} />
-          Registered <strong style={{ marginLeft: 4, marginRight: 4 }}>readers</strong> only — admin accounts are managed in the database. Toggle <strong>is_admin</strong> for a reader to grant portal access.
-        </div>
-      ) : (
-        <div style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 8, background: "#F9FAFB", border: "1px solid #E5E7EB", fontSize: 12, color: "#6B7280" }}>
-          Reader accounts from the database (admins are not listed here).
-        </div>
-      )}
+  const filterHint =
+    accountFilter === 'all'
+      ? 'Every account in the database — readers and staff.'
+      : accountFilter === 'readers'
+        ? 'Reader accounts only. Super admins can grant admin portal access below.'
+        : 'Users with admin portal access (not super admins).'
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ flex: 1, maxWidth: 320, display: "flex", alignItems: "center", gap: 8, background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 7, padding: "0 11px", height: 36 }}>
-          <Search size={13} color="#9CA3AF" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" style={{ border: "none", outline: "none", fontSize: 13, color: "#111827", background: "transparent", fontFamily: "'Inter', sans-serif", flex: 1, minWidth: 0 }} />
+  const countLabel =
+    accountFilter === 'admins'
+      ? totalCount === 1
+        ? 'admin'
+        : 'admins'
+      : accountFilter === 'readers'
+        ? totalCount === 1
+          ? 'reader'
+          : 'readers'
+        : totalCount === 1
+          ? 'account'
+          : 'accounts'
+
+  return (
+    <div className="admin-page">
+      <p className="mb-4 text-sm leading-relaxed" style={{ color: adminTheme.textMuted }}>
+        Manage accounts, roles, and admin access. Use filters to switch between reader and staff lists.
+      </p>
+
+      <div
+        className="mb-4 flex flex-wrap gap-1 rounded-lg border p-1"
+        style={{ borderColor: adminTheme.border, background: '#FDF0D5' }}
+        role="tablist"
+        aria-label="User account filters"
+      >
+        {USER_FILTER_TABS.map((tab) => {
+          const active = accountFilter === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setAccountFilter(tab.id)}
+              className="rounded-md px-3 py-2 text-xs font-bold transition sm:px-4 sm:text-sm"
+              style={{
+                fontFamily: ADMIN_FONT,
+                background: active ? adminTheme.primary : 'transparent',
+                color: active ? '#FEF8EE' : adminTheme.textMuted,
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div
+        className="mb-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-relaxed sm:text-sm"
+        style={{
+          borderColor: adminTheme.border,
+          background: '#FEF8EE',
+          color: adminTheme.textMuted,
+        }}
+      >
+        <ShieldCheck size={16} className="mt-0.5 shrink-0" style={{ color: adminTheme.primary }} />
+        <span>{filterHint}</span>
+      </div>
+
+      <div className="admin-toolbar">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#E8C98A] bg-[#FEF8EE] px-3 sm:max-w-sm" style={{ height: 36 }}>
+          <Search size={13} color="#9CA3AF" aria-hidden />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or email…"
+            className="min-w-0 flex-1 border-none bg-transparent text-sm outline-none"
+            style={{ color: adminTheme.text, fontFamily: ADMIN_FONT }}
+          />
         </div>
-        <div style={{ flex: 1 }} />
         {usersQuery.isFetching ? (
-          <Loader2 size={14} color="#9CA3AF" className="animate-spin" />
+          <Loader2 size={14} color={adminTheme.textSoft} className="animate-spin" aria-hidden />
         ) : null}
-        <div style={{ fontSize: 12, color: "#6B7280" }}>{totalCount} {totalCount === 1 ? "reader" : "readers"}</div>
+        <div className="text-xs sm:text-sm" style={{ color: adminTheme.textSoft }}>
+          {totalCount} {countLabel}
+        </div>
       </div>
 
       {toggleError ? (
@@ -1027,6 +697,7 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
         </div>
       ) : (
       <SectionCard>
+        <div className="admin-table-wrap">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
@@ -1074,7 +745,7 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
                 <td style={{ padding: "12px 14px" }}>
                   <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 20, background: statusColors[statusLabel].bg, color: statusColors[statusLabel].text }}>{statusLabel}</span>
                 </td>
-                {canManageAdmins ? (
+                {showAdminToggle ? (
                   <td style={{ padding: "12px 14px" }}>
                     <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: toggleDisabled ? "not-allowed" : "pointer", opacity: toggleDisabled ? 0.55 : 1 }}>
                       <input
@@ -1082,7 +753,7 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
                         checked={user.is_admin}
                         disabled={toggleDisabled}
                         onChange={(e) => adminToggleMutation.mutate({ userId: user._id, isAdmin: e.target.checked })}
-                        style={{ width: 16, height: 16, accentColor: "#4F46E5" }}
+                        style={{ width: 16, height: 16, accentColor: adminTheme.primary }}
                       />
                       <span style={{ fontSize: 12, fontWeight: 600, color: user.is_admin ? "#15803D" : "#6B7280" }}>
                         {user.is_super_admin ? "Always on" : user.is_admin ? "is_admin" : "Reader"}
@@ -1094,6 +765,7 @@ function UsersView({ canManageAdmins }: { canManageAdmins: boolean }) {
             )})}
           </tbody>
         </table>
+        </div>
       </SectionCard>
       )}
     </div>
@@ -1111,54 +783,103 @@ const NAV_ITEMS = [
 
 type NavId = typeof NAV_ITEMS[number]["id"];
 
-function Sidebar({ active, onNav, userName, userRole, bookCount }: { active: NavId; onNav: (id: NavId) => void; userName: string; userRole: string; bookCount: number }) {
-  const initial = userName.charAt(0).toUpperCase();
+function Sidebar({
+  active,
+  onNav,
+  userName,
+  userRole,
+  bookCount,
+  mobileOpen,
+  onClose,
+}: {
+  active: NavId
+  onNav: (id: NavId) => void
+  userName: string
+  userRole: string
+  bookCount: number
+  mobileOpen: boolean
+  onClose: () => void
+}) {
+  const initial = userName.charAt(0).toUpperCase()
   return (
-    <aside style={{ width: 224, flexShrink: 0, background: "#111827", display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
-      {/* Logo */}
-      <div style={{ padding: "18px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <BookOpen size={16} color="#fff" />
+    <>
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-40 bg-[#3D2314]/55 lg:hidden"
+          onClick={onClose}
+        />
+      ) : null}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(100%,260px)] flex-col border-r border-[#E8C98A]/20 bg-[#3D2314] transition-transform duration-200 lg:static lg:z-auto lg:w-56 lg:translate-x-0 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+        style={{ fontFamily: ADMIN_FONT }}
+      >
+        <div className="flex items-center gap-2.5 border-b border-white/10 px-4 py-4">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: adminTheme.primary }}
+          >
+            <BookOpen size={16} color="#fff" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <div className="font-pictoria truncate text-base font-semibold text-[#F5D9A0]">Pictoria</div>
+            <div className="text-[10px] text-[#9B6B4A]">Admin</div>
+          </div>
         </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#F9FAFB", letterSpacing: "-0.3px" }}>Pictoria</div>
-          <div style={{ fontSize: 10, color: "#6B7280", marginTop: 1 }}>Admin Panel</div>
-        </div>
-      </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: "10px 8px", overflowY: "auto" }}>
-        <div style={{ fontSize: 10, fontWeight: 600, color: "#4B5563", letterSpacing: "0.08em", textTransform: "uppercase", padding: "8px 8px 6px", marginBottom: 2 }}>Main Menu</div>
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.id;
-          return (
-            <button key={item.id} onClick={() => onNav(item.id)}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 7, border: "none", background: isActive ? "#4F46E5" : "transparent", color: isActive ? "#FFFFFF" : "#9CA3AF", fontSize: 13, fontWeight: isActive ? 600 : 400, cursor: "pointer", textAlign: "left", marginBottom: 2, fontFamily: "'Inter', sans-serif", transition: "all 0.15s" }}
-              onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#D1D5DB"; } }}
-              onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; } }}>
-              <Icon size={15} />
-              {item.label}
-              {item.id === "books" && bookCount > 0 && (
-                <span style={{ marginLeft: "auto", background: isActive ? "rgba(255,255,255,0.25)" : "rgba(79,70,229,0.2)", color: isActive ? "#fff" : "#818CF8", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 10 }}>
-                  {bookCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="px-2 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#9B6B4A]">Menu</div>
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon
+            const isActive = active === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onNav(item.id)}
+                className={`mb-1 flex w-full items-center gap-2.5 rounded-lg border-none px-3 py-2.5 text-left text-[13px] transition ${
+                  isActive
+                    ? 'bg-[#8B2635] font-semibold text-[#FEF8EE]'
+                    : 'bg-transparent font-medium text-[#C4A875] hover:bg-white/5 hover:text-[#F5D9A0]'
+                }`}
+              >
+                <Icon size={15} aria-hidden />
+                {item.label}
+                {item.id === 'books' && bookCount > 0 ? (
+                  <span
+                    className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-[#8B2635]/30 text-[#F5D9A0]'
+                    }`}
+                  >
+                    {bookCount}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
+          <div className="mt-4 px-1">
+            <PublicSiteButton variant="sidebar" fullWidth />
+          </div>
+        </nav>
 
-      {/* Admin profile */}
-      <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#4F46E5,#7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{initial}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#F3F4F6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName}</div>
-          <div style={{ fontSize: 10, color: "#6B7280" }}>{userRole}</div>
+        <div className="flex items-center gap-2.5 border-t border-white/10 p-3">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+            style={{ background: `linear-gradient(135deg, ${adminTheme.primary}, ${adminTheme.accent})` }}
+          >
+            {initial}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-xs font-semibold text-[#F5D9A0]">{userName}</div>
+            <div className="truncate text-[10px] text-[#9B6B4A]">{userRole}</div>
+          </div>
         </div>
-      </div>
-    </aside>
-  );
+      </aside>
+    </>
+  )
 }
 
 // ─── Page Header ───────────────────────────────────────────────────────────────
@@ -1171,23 +892,45 @@ const PAGE_TITLES: Record<string, string> = {
   genresTags: "Genres & tags",
 };
 
-function PageHeader({ view, userName, userRole }: { view: AdminView; userName: string; userRole: string }) {
+function PageHeader({
+  view,
+  userName,
+  userRole,
+  onOpenMenu,
+}: {
+  view: AdminView
+  userName: string
+  userRole: string
+  onOpenMenu: () => void
+}) {
   return (
-    <header style={{ minHeight: 56, background: "#FFFFFF", borderBottom: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 24px", flexShrink: 0, gap: 16 }}>
-      <div style={{ minWidth: 0 }}>
-        <h1 style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: 0, letterSpacing: "-0.2px" }}>
+    <header
+      className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#E8C98A] bg-[#FEF8EE] px-4 py-3 sm:px-6"
+      style={{ fontFamily: ADMIN_FONT }}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <button
+          type="button"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#E8C98A] bg-[#FDF0D5] text-[#6B4226] lg:hidden"
+          onClick={onOpenMenu}
+          aria-label="Open menu"
+        >
+          <Menu size={18} aria-hidden />
+        </button>
+        <div className="min-w-0">
+        <h1 className="font-pictoria m-0 truncate text-base font-semibold text-[#3D2314] sm:text-lg">
           {PAGE_TITLES[view] ?? "Admin"}
         </h1>
-        <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>
+        <div className="mt-0.5 truncate text-[11px] text-[#9B6B4A] sm:text-xs">
           {view === "dashboard" && "Overview & analytics"}
           {view === "books" && "Manage your library"}
           {view === "book-form" && "Create or edit a book"}
-          {view === "users" && "Manage registered users and admin access"}
+          {view === "users" && "Browse and manage all accounts"}
           {view === "genresTags" && "Genres for shelves, tags for flexible labels"}
         </div>
+        </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-        <PublicSiteButton variant="header" />
+      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
         <AdminUserChip name={userName} role={userRole} />
       </div>
     </header>
@@ -1205,12 +948,14 @@ export default function AdminPanel() {
   const [activeNav, setActiveNav] = useState<NavId>("dashboard");
   const [view, setView] = useState<AdminView>("dashboard");
   const [editingBook, setEditingBook] = useState<AdminBook | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const bookCount = useAdminBookCount();
 
   const handleNav = (id: NavId) => {
     setActiveNav(id);
     setView(id as AdminView);
     setEditingBook(null);
+    setSidebarOpen(false);
   };
 
   const handleAddBook = () => {
@@ -1234,11 +979,29 @@ export default function AdminPanel() {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: "'Inter', sans-serif", background: "#F9FAFB" }}>
-      <Sidebar active={activeNav} onNav={handleNav} userName={displayName} userRole={roleLabel} bookCount={bookCount} />
+    <div
+      className="flex h-[100dvh] overflow-hidden bg-[#FDF0D5] font-sans text-[#3D2314]"
+      style={{ fontFamily: ADMIN_FONT }}
+    >
+      <Sidebar
+        active={activeNav}
+        onNav={handleNav}
+        userName={displayName}
+        userRole={roleLabel}
+        bookCount={bookCount}
+        mobileOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {view !== "book-form" && <PageHeader view={view} userName={displayName} userRole={roleLabel} />}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {view !== "book-form" && (
+          <PageHeader
+            view={view}
+            userName={displayName}
+            userRole={roleLabel}
+            onOpenMenu={() => setSidebarOpen(true)}
+          />
+        )}
 
         {view === "dashboard"  && <DashboardView />}
         {view === "books"      && <BooksView onAdd={handleAddBook} onEdit={handleEditBook} />}

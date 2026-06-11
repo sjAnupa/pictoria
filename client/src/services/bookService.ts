@@ -26,6 +26,8 @@ export type BookListParams = {
   featured?: boolean
   isNew?: boolean
   status?: string
+  /** When true, omit status filter so the server can return all books for admin preview. */
+  catalogAdminPreview?: boolean
 }
 
 export type BookListResponse = {
@@ -36,7 +38,13 @@ export type BookListResponse = {
 }
 
 export type ChapterReadPayload = {
-  book: { _id: string; slug: string; title: string }
+  book: {
+    _id: string
+    slug: string
+    title: string
+    accessType: 'free' | 'registered' | 'premium'
+    freeChapterLimit?: number
+  }
   chapter: {
     _id: string
     chapterNumber: number
@@ -51,7 +59,11 @@ export async function fetchBooks(params: BookListParams = {}): Promise<BookListR
     const query: Record<string, string | number> = {
       page: params.page ?? 1,
       limit: params.limit ?? 50,
-      status: params.status ?? 'published',
+    }
+    if (params.catalogAdminPreview) {
+      // Server uses auth token to include draft/hidden/archived for admins.
+    } else {
+      query.status = params.status ?? 'published'
     }
     if (params.genre) query.genre = params.genre
     if (params.tag) query.tag = params.tag

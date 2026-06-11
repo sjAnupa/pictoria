@@ -2,12 +2,14 @@ import { Request, Response } from 'express'
 import { successResponse, errorResponse } from '../utils/apiResponse'
 import { createBookSchema, updateBookSchema } from '../validators/book.validator'
 import { paramString } from '../utils/paramString'
+import { isCatalogAdmin } from '../middleware/optionalAuth.middleware'
 import {
   createBookRecord,
   deleteBookRecord,
   findAllBooks,
   findBookById,
   findBookBySlug,
+  findBookForAdminEdit,
   updateBookRecord,
 } from '../services/book.service'
 import { getCatalogStats as computeCatalogStats } from '../services/admin.service'
@@ -18,10 +20,24 @@ export const getCatalogStats = async (_req: Request, res: Response): Promise<Res
 }
 
 export const getAllBooks = async (req: Request, res: Response): Promise<Response> => {
+  const isAdmin = isCatalogAdmin(req)
+  const statusQuery = req.query.status as string | undefined
+
+  let status: string
+  if (statusQuery === 'all') {
+    status = 'all'
+  } else if (statusQuery) {
+    status = statusQuery
+  } else if (isAdmin) {
+    status = 'all'
+  } else {
+    status = 'published'
+  }
+
   const result = await findAllBooks({
     genre: req.query.genre as string | undefined,
     tag: req.query.tag as string | undefined,
-    status: req.query.status === 'all' ? 'all' : ((req.query.status as string) || 'published'),
+    status,
     search: req.query.search as string | undefined,
     featured: req.query.featured === 'true' ? true : undefined,
     isNew: req.query.isNew === 'true' ? true : undefined,
@@ -33,7 +49,15 @@ export const getAllBooks = async (req: Request, res: Response): Promise<Response
 }
 
 export const getBookBySlug = async (req: Request, res: Response): Promise<Response> => {
-  const book = await findBookBySlug(paramString(req.params.slug))
+  const book = await findBookBySlug(paramString(req.params.slug), isCatalogAdmin(req))
+  if (!book) {
+    return errorResponse(res, 'Book not found', 404)
+  }
+  return successResponse(res, book)
+}
+
+export const getBookForAdminEdit = async (req: Request, res: Response): Promise<Response> => {
+  const book = await findBookForAdminEdit(paramString(req.params.id))
   if (!book) {
     return errorResponse(res, 'Book not found', 404)
   }

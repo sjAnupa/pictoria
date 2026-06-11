@@ -87,28 +87,6 @@ function BrandPanel() {
   )
 }
 
-function MobileBrandBand() {
-  return (
-    <div
-      className="relative overflow-hidden rounded-2xl px-6 pb-6 pt-8 lg:hidden"
-      style={{
-        background: `
-          radial-gradient(ellipse at 30% 20%, rgba(232,184,75,0.5) 0%, transparent 55%),
-          radial-gradient(ellipse at 80% 90%, rgba(196,119,106,0.25) 0%, transparent 50%),
-          #F5D9A0
-        `,
-      }}
-    >
-      <div className="mb-6 flex justify-center">
-        <BrandMark />
-      </div>
-      <div className="flex justify-center">
-        <BooksIllustration size={200} />
-      </div>
-    </div>
-  )
-}
-
 export default function AuthScreen({
   mode,
   busy,
@@ -128,15 +106,14 @@ export default function AuthScreen({
       <BrandPanel />
 
       <div className="flex min-h-screen flex-col bg-[#FEF8EE]">
-        <main className="flex flex-1 flex-col justify-center px-6 py-8 sm:px-10 lg:py-12">
+        <main className="page-gutter flex flex-1 flex-col justify-center py-6 sm:py-8 lg:py-12">
           <div className="mx-auto w-full max-w-[380px]">
-            <div className="mb-6 lg:hidden">
-              <MobileBrandBand />
-            </div>
-
-            <div className="mb-8 lg:mb-10">
+            <div className="mb-6 lg:mb-10">
+              <div className="mb-4 lg:hidden">
+                <BrandMark className="justify-center" />
+              </div>
               <h1
-                className="font-pictoria text-[2rem] font-bold leading-tight text-[#3D2314] sm:text-[2.35rem]"
+                className="font-pictoria text-center text-[1.75rem] font-bold leading-tight text-[#3D2314] sm:text-left sm:text-[2.35rem] lg:text-left"
                 style={{ fontFeatureSettings: '"opsz" 72' }}
               >
                 {c.title}

@@ -30,8 +30,8 @@ export default function AdminToast({ toast, onDismiss, durationMs = 3800 }: Admi
       {toast ? (
         <motion.div
           key={toast.id}
-          role="status"
-          aria-live="polite"
+          role={isSuccess ? 'status' : 'alert'}
+          aria-live={isSuccess ? 'polite' : 'assertive'}
           initial={{ opacity: 0, y: 16, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -48,9 +48,11 @@ export default function AdminToast({ toast, onDismiss, durationMs = 3800 }: Admi
             maxWidth: 'min(420px, calc(100vw - 40px))',
             padding: '14px 16px',
             borderRadius: 12,
-            background: '#FFFFFF',
-            border: `1px solid ${isSuccess ? '#BBF7D0' : '#FECACA'}`,
-            boxShadow: '0 16px 40px rgba(0,0,0,0.12)',
+            background: isSuccess ? '#FFFFFF' : '#FEF2F2',
+            border: `1px solid ${isSuccess ? '#BBF7D0' : '#FCA5A5'}`,
+            boxShadow: isSuccess
+              ? '0 16px 40px rgba(0,0,0,0.12)'
+              : '0 16px 40px rgba(220,38,38,0.18)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -59,7 +61,7 @@ export default function AdminToast({ toast, onDismiss, durationMs = 3800 }: Admi
           ) : (
             <XCircle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden />
           )}
-          <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 600, color: '#111827', lineHeight: 1.45 }}>
+          <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 600, color: isSuccess ? '#111827' : '#991B1B', lineHeight: 1.45 }}>
             {toast.message}
           </p>
           <button

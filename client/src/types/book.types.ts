@@ -7,6 +7,7 @@ export interface Book {
   slug: string
   title: string
   author: string
+  publisher?: string
   genre: string
   coverImage: string
   description: string
@@ -18,6 +19,7 @@ export interface Book {
   chapters: string[]
   status: BookStatus
   accessType: BookAccessType
+  freeChapterLimit?: number
   featured?: boolean
   isNew?: boolean
 }
@@ -33,6 +35,7 @@ export type ApiBookRecord = {
   slug: string
   title: string
   author: string
+  publisher?: string
   description: string
   longDescription?: string
   coverImageUrl: string
@@ -41,6 +44,7 @@ export type ApiBookRecord = {
   publicationYear?: number
   pageCount?: number
   accessType: BookAccessType
+  freeChapterLimit?: number
   status: string
   featured?: boolean
   newArrival?: boolean

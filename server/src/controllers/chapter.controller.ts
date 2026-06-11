@@ -11,6 +11,7 @@ import {
   updateChapterRecord,
 } from '../services/chapter.service'
 import { findChapterForReading } from '../services/book.service'
+import { isCatalogAdmin } from '../middleware/optionalAuth.middleware'
 
 export const getChaptersByBook = async (req: Request, res: Response): Promise<Response> => {
   const chapters = await findChaptersByBookId(paramString(req.params.bookId))
@@ -23,7 +24,11 @@ export const getChapterForReading = async (req: Request, res: Response): Promise
     return errorResponse(res, 'Invalid chapter number', 400)
   }
 
-  const payload = await findChapterForReading(paramString(req.params.bookId), chapterNumber)
+  const payload = await findChapterForReading(
+    paramString(req.params.bookId),
+    chapterNumber,
+    isCatalogAdmin(req),
+  )
   if (!payload) {
     return errorResponse(res, 'Chapter not found', 404)
   }
@@ -46,12 +51,18 @@ export const createChapter = async (req: Request, res: Response): Promise<Respon
   }
 
   const files = (req.files as Express.Multer.File[]) ?? []
-  const chapter = await createChapterRecord(parsed.data, files)
-  if (!chapter) {
-    return errorResponse(res, 'Book not found', 404)
-  }
 
-  return successResponse(res, chapter, 201, 'Chapter created')
+  try {
+    const chapter = await createChapterRecord(parsed.data, files)
+    if (!chapter) {
+      return errorResponse(res, 'Book not found', 404)
+    }
+
+    return successResponse(res, chapter, 201, 'Chapter created')
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to create chapter pages'
+    return errorResponse(res, message, 400)
+  }
 }
 
 export const updateChapter = async (req: Request, res: Response): Promise<Response> => {
@@ -66,12 +77,17 @@ export const updateChapter = async (req: Request, res: Response): Promise<Respon
   }
 
   const files = (req.files as Express.Multer.File[]) ?? undefined
-  const updated = await updateChapterRecord(chapter, parsed.data, files)
-  if (!updated) {
-    return errorResponse(res, 'Book not found', 404)
-  }
 
-  return successResponse(res, updated, 200, 'Chapter updated')
+  try {
+    const updated = await updateChapterRecord(chapter, parsed.data, files)
+    if (!updated) {
+      return errorResponse(res, 'Book not found', 404)
+    }
+    return successResponse(res, updated, 200, 'Chapter updated')
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to update chapter pages'
+    return errorResponse(res, message, 400)
+  }
 }
 
 export const deleteChapter = async (req: Request, res: Response): Promise<Response> => {

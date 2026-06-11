@@ -40,7 +40,7 @@ export default function Navbar() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <div className="page-gutter flex min-h-[76px] h-[76px] items-center gap-3 sm:gap-4">
+      <div className="page-gutter flex min-h-[64px] items-center gap-2 py-2 sm:min-h-[72px] sm:gap-4 sm:py-0">
         <Link
           to="/"
           className="flex min-w-0 shrink-0 items-center gap-2.5 no-underline sm:gap-3"
@@ -53,10 +53,10 @@ export default function Navbar() {
             width={56}
             height={56}
             decoding="async"
-            className="h-14 w-14 shrink-0 object-contain [image-rendering:-webkit-optimize-contrast]"
+            className="h-11 w-11 shrink-0 object-contain sm:h-14 sm:w-14 [image-rendering:-webkit-optimize-contrast]"
           />
           <span
-            className="font-pictoria text-[1.35rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314] sm:text-[1.5rem]"
+            className="font-pictoria text-[1.2rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314] sm:text-[1.5rem]"
             style={{ fontFeatureSettings: '"opsz" 72' }}
           >
             Pictoria
@@ -162,6 +162,16 @@ export default function Navbar() {
               >
                 {isCatalog ? <House size={16} /> : <LibraryBig size={16} />}
                 {isCatalog ? 'Home' : 'Browse catalog'}
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link
+                to="/account"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 rounded-xl px-3 py-3 text-[#6B4226] no-underline hover:bg-[#F5D9A0]/50"
+              >
+                <BookOpen size={16} />
+                My library
               </Link>
             )}
             {isAdmin && (

@@ -77,9 +77,9 @@ const ChapterScrollReader = ({
   }, [pages.length])
 
   return (
-    <div className="w-full bg-[#E8D4A8]" style={{ fontFamily: "'Nunito', sans-serif" }}>
-      <div className="sticky top-0 z-20 border-b border-[#C9A86A]/80 bg-[#FEF8EE]/95 shadow-sm backdrop-blur-md">
-        <div className="mx-auto flex max-w-[min(100%,720px)] items-center gap-2 px-3 py-2.5 sm:px-5">
+    <div className="flex min-h-[100dvh] w-full flex-col bg-[#E8D4A8]" style={{ fontFamily: "'Nunito', sans-serif" }}>
+      <div className="sticky top-0 z-20 border-b border-[#C9A86A]/80 bg-[#FEF8EE]/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md">
+        <div className="mx-auto flex max-w-[min(100%,720px)] items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 md:px-5">
           <Link
             to={backTo}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E8C98A] bg-[#FDF0D5] text-[#6B4226] no-underline transition hover:border-[#C9952A] hover:bg-[#F5D9A0]/80"
@@ -99,7 +99,7 @@ const ChapterScrollReader = ({
         </div>
       </div>
 
-      <div className="mx-auto max-w-[min(100%,720px)] px-2 py-3 sm:px-4 sm:py-5">
+      <div className="mx-auto w-full max-w-[min(100%,720px)] flex-1 px-0 py-1 pb-[env(safe-area-inset-bottom)] sm:px-3 sm:py-4 md:px-4">
         {pages.length === 0 ? (
           <p className="py-16 text-center text-sm text-[#6B4226]">No pages available for this chapter.</p>
         ) : (

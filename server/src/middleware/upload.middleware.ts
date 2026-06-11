@@ -18,4 +18,4 @@ const upload = multer({
 })
 
 export const uploadSingle = upload.single('image')
-export const uploadMultiple = upload.array('pages', 60)
+export const uploadMultiple = upload.array('pages', 150)

@@ -70,11 +70,11 @@ function SectionShell({
               width: 40,
               height: 40,
               borderRadius: 10,
-              background: '#EEF2FF',
+              background: '#FDF0D5',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#4F46E5',
+              color: '#8B2635',
               flexShrink: 0,
             }}
           >
@@ -244,7 +244,7 @@ export default function GenresAndTagsView() {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="admin-page flex flex-col gap-5" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <p style={{ margin: 0, fontSize: 13, color: '#6B7280', lineHeight: 1.55 }}>
         Manage catalog genres and book tags. Changes save automatically and appear in the library when books are connected.
       </p>

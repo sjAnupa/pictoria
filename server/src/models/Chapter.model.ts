@@ -5,6 +5,8 @@ export interface IChapter extends Document {
   chapterNumber: number
   title: string
   pageImageUrls: string[]
+  /** User-facing labels (original upload names), parallel to pageImageUrls */
+  pageImageNames: string[]
   totalPages: number
   highlightUntil?: Date
   createdAt: Date
@@ -17,6 +19,7 @@ const ChapterSchema = new Schema<IChapter>(
     chapterNumber: { type: Number, required: true },
     title: { type: String, required: true, trim: true },
     pageImageUrls: { type: [String], default: [] },
+    pageImageNames: { type: [String], default: [] },
     totalPages: { type: Number, default: 0 },
     highlightUntil: { type: Date },
   },

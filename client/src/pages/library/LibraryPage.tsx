@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
+import PageMeta from '../../components/common/PageMeta'
 import BookCard from '../../components/books/BookCard'
 import type { Book } from '../../types/book.types'
 import { usePublishedBooks } from '../../hooks/useBooks'
@@ -188,6 +189,11 @@ export default function LibraryPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FDF0D5] font-sans">
+      <PageMeta
+        title="Browse Storybook Catalog"
+        description="Search and browse illustrated storybooks on Pictoria. Filter by genre, tag, and rating — read free previews instantly."
+        canonicalPath="/library"
+      />
       <Navbar />
       <main className="relative z-0 flex-1 min-w-0 w-full">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(201,149,42,0.32),transparent)]" />
@@ -399,10 +405,7 @@ export default function LibraryPage() {
               <p className="font-sans mt-2 text-sm text-[#9B6B4A]">Try clearing search or filters.</p>
             </div>
           ) : (
-            <div
-              className="relative z-0 grid gap-6"
-              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
-            >
+            <div className="book-grid relative z-0">
               {filtered.map((book) => (
                 <BookCard key={book.id} book={book} shortTile />
               ))}

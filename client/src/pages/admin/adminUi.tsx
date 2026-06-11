@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Globe, ArrowLeft, type LucideIcon } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
+import { ADMIN_FONT, adminTheme } from './adminTheme'
 
-const FONT = "'Inter', sans-serif"
+const FONT = ADMIN_FONT
 
 type AdminButtonProps = {
   children: ReactNode
@@ -21,12 +22,12 @@ const VARIANTS: Record<
   secondary: {
     base: {
       padding: '8px 14px',
-      border: '1px solid #D1D5DB',
+      border: `1px solid ${adminTheme.border}`,
       borderRadius: 8,
-      background: '#FFFFFF',
+      background: adminTheme.surface,
       fontSize: 13,
       fontWeight: 600,
-      color: '#374151',
+      color: adminTheme.textMuted,
       boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
     },
     hover: { background: '#F9FAFB', borderColor: '#9CA3AF' },
@@ -36,13 +37,13 @@ const VARIANTS: Record<
       padding: '8px 18px',
       border: 'none',
       borderRadius: 8,
-      background: '#4F46E5',
+      background: adminTheme.primary,
       fontSize: 13,
       fontWeight: 600,
-      color: '#FFFFFF',
-      boxShadow: '0 1px 4px rgba(79,70,229,0.35)',
+      color: '#FEF8EE',
+      boxShadow: '0 2px 8px rgba(139,38,53,0.28)',
     },
-    hover: { background: '#4338CA' },
+    hover: { background: adminTheme.primaryHover },
   },
   danger: {
     base: {
@@ -179,6 +180,26 @@ export function PublicSiteButton({ variant = 'header', fullWidth }: PublicSiteBu
   )
 }
 
+export function AdminFormAlert({ message }: { message: string }) {
+  return (
+    <div
+      role="alert"
+      style={{
+        padding: '12px 14px',
+        borderRadius: 10,
+        background: '#FEE2E2',
+        color: '#B91C1C',
+        fontSize: 13,
+        lineHeight: 1.5,
+        fontWeight: 600,
+        border: '1px solid #FECACA',
+      }}
+    >
+      {message}
+    </div>
+  )
+}
+
 export function AdminBackButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <AdminButton variant="ghost" icon={ArrowLeft} onClick={onClick}>
@@ -212,7 +233,7 @@ export function AdminUserChip({
           width: 32,
           height: 32,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg,#4F46E5,#7C3AED)',
+          background: `linear-gradient(135deg, ${adminTheme.primary}, ${adminTheme.accent})`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

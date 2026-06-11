@@ -20,9 +20,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const hadToken = Boolean(error.config?.headers?.Authorization)
       localStorage.removeItem('pictoria_token')
       useAuthStore.getState().logout()
-      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+      if (
+        hadToken &&
+        !window.location.pathname.startsWith('/login') &&
+        !window.location.pathname.startsWith('/register')
+      ) {
         window.location.href = '/login'
       }
     }

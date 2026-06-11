@@ -1,3 +1,4 @@
+import { useMemo, useState, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -19,7 +20,12 @@ import BookCard from '../components/books/BookCard'
 import { BooksIllustration } from '../components/illustrations/BooksIllustration'
 import Navbar from '../components/common/Navbar'
 import Footer from '../components/common/Footer'
-import { useMemo, useState, useCallback } from 'react'
+import PageMeta from '../components/common/PageMeta'
+import { useBookEngagement, useToggleBookLike, useToggleSavedBook } from '../hooks/useBookEngagement'
+import { useAuthStore } from '../store/authStore'
+import { canAccessAdminPortal } from '../utils/authPermissions'
+import { getChapterAccess } from '../utils/chapterAccess'
+import AdminPreviewStatusBadge from '../components/books/AdminPreviewStatusBadge'
 
 const genreColors: Record<string, { bg: string; text: string }> = {
   Fantasy: { bg: "#E8D5F5", text: "#6B2D8B" },
@@ -40,13 +46,20 @@ function chapterReadMetrics(totalPages: number, chapterCount: number) {
 export default function BookDetail() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const [bookmarked, setBookmarked] = useState(false)
-  const [liked, setLiked] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'chapters' | 'similar'>('overview')
+  const [accessNotice, setAccessNotice] = useState<string | null>(null)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isAdmin = canAccessAdminPortal(useAuthStore((s) => s.user))
 
   const { data: book, isLoading, isError } = useBookBySlug(slug)
   const { data: allBooks = [] } = useAllPublishedBooksForSimilar()
   const { data: progress } = useBookReadingProgress(book?.id)
+  const { data: engagement } = useBookEngagement(book?.id)
+  const toggleLike = useToggleBookLike(book?.id ?? '')
+  const toggleSave = useToggleSavedBook(book?.id ?? '')
+
+  const liked = engagement?.liked ?? false
+  const bookmarked = engagement?.saved ?? false
 
   const hasProgress = Boolean(progress?._id)
   const resumeChapter = progress?.currentChapter ?? 1
@@ -60,6 +73,14 @@ export default function BookDetail() {
   const openChapter = useCallback(
     (chapterNumber: number, action?: SaveProgressPayload['action']) => {
       if (!book) return
+
+      const access = getChapterAccess(book, chapterNumber, isAuthenticated)
+      if (!access.allowed) {
+        setAccessNotice(access.message)
+        return
+      }
+
+      setAccessNotice(null)
 
       const resumeSameChapter =
         hasProgress && progress!.currentChapter === chapterNumber && progress!.currentPage > 1
@@ -78,7 +99,7 @@ export default function BookDetail() {
       })
       navigate(`/read/${book.id}/chapter/${chapterNumber}`)
     },
-    [book, hasProgress, progress, navigate],
+    [book, hasProgress, progress, navigate, isAuthenticated],
   )
 
   const primaryCtaLabel =
@@ -127,9 +148,95 @@ export default function BookDetail() {
   const otherBooks = allBooks.filter((b) => b.id !== book.id).slice(0, 4);
   const displaySimilar = similarBooks.length >= 2 ? similarBooks : otherBooks;
 
+  const requireSignIn = () => {
+    navigate('/login', { state: { from: `/books/${book.slug}` } })
+  }
+
+  const handleToggleLike = () => {
+    if (!book) return
+    if (!isAuthenticated) {
+      requireSignIn()
+      return
+    }
+    toggleLike.mutate()
+  }
+
+  const handleToggleSave = () => {
+    if (!book) return
+    if (!isAuthenticated) {
+      requireSignIn()
+      return
+    }
+    toggleSave.mutate()
+  }
+
+  const bookJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Book',
+    name: book.title,
+    author: { '@type': 'Person', name: book.author },
+    description: book.description,
+    image: book.coverImage,
+    url: `${window.location.origin}/books/${book.slug}`,
+    inLanguage: 'en',
+    numberOfPages: book.pages || undefined,
+    datePublished: book.year ? String(book.year) : undefined,
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#FDF0D5]">
+      <PageMeta
+        title={book.title}
+        description={book.description}
+        image={book.coverImage}
+        canonicalPath={`/books/${book.slug}`}
+        type="book"
+        jsonLd={bookJsonLd}
+      />
       <Navbar />
+      {accessNotice ? (
+        <div
+          className="page-gutter py-3"
+          role="alert"
+          style={{
+            background: '#FEE2E2',
+            borderBottom: '1px solid #FECACA',
+            color: '#991B1B',
+            fontSize: 14,
+            fontWeight: 600,
+          }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{accessNotice}</span>
+            <div className="flex flex-wrap gap-2">
+              {!isAuthenticated ? (
+                <>
+                  <Link
+                    to="/register"
+                    className="rounded-full bg-[#8B2635] px-4 py-1.5 text-xs font-bold text-white no-underline"
+                  >
+                    Create account
+                  </Link>
+                  <Link
+                    to="/login"
+                    state={{ from: `/books/${book.slug}` }}
+                    className="rounded-full border border-[#FECACA] bg-white px-4 py-1.5 text-xs font-bold text-[#991B1B] no-underline"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setAccessNotice(null)}
+                className="rounded-full border border-transparent px-3 py-1.5 text-xs font-bold text-[#991B1B]"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="flex-1 w-full min-w-0" style={{ fontFamily: "'Nunito', sans-serif" }}>
       {/* ===== HERO BOOK SECTION ===== */}
       <div
@@ -137,8 +244,9 @@ export default function BookDetail() {
           background: "linear-gradient(180deg, #3D2314 0%, #6B4226 60%, #FDF0D5 100%)",
           position: "relative",
           overflow: "hidden",
-          paddingBottom: 60,
+          paddingBottom: 0,
         }}
+        className="pb-10 md:pb-16"
       >
         {/* Background texture */}
         <div
@@ -187,13 +295,12 @@ export default function BookDetail() {
         </div>
 
         {/* Book Hero Content */}
-        <div className="page-gutter relative z-[2] grid grid-cols-[auto_minmax(0,1fr)] items-start gap-12 pb-4 pt-10">
+        <div className="page-gutter relative z-[2] grid grid-cols-1 items-start gap-6 pb-4 pt-6 sm:gap-8 md:grid-cols-[auto_minmax(0,1fr)] md:gap-10 lg:gap-12 md:pt-10">
           {/* Book Cover */}
-          <div style={{ flexShrink: 0 }}>
+          <div className="mx-auto w-full max-w-[220px] shrink-0 md:mx-0">
             <div
+              className="mx-auto aspect-[11/15] w-full max-w-[220px]"
               style={{
-                width: 220,
-                height: 300,
                 borderRadius: 16,
                 overflow: "hidden",
                 boxShadow:
@@ -201,6 +308,7 @@ export default function BookDetail() {
                 position: "relative",
               }}
             >
+              {isAdmin ? <AdminPreviewStatusBadge status={book.status} /> : null}
               <img
                 src={book.coverImage}
                 alt={book.title}
@@ -229,7 +337,10 @@ export default function BookDetail() {
               }}
             >
               <button
-                onClick={() => setLiked(!liked)}
+                type="button"
+                onClick={handleToggleLike}
+                disabled={toggleLike.isPending}
+                aria-pressed={liked}
                 style={{
                   flex: 1,
                   padding: "8px 0",
@@ -254,7 +365,10 @@ export default function BookDetail() {
                 {liked ? "Liked" : "Like"}
               </button>
               <button
-                onClick={() => setBookmarked(!bookmarked)}
+                type="button"
+                onClick={handleToggleSave}
+                disabled={toggleSave.isPending}
+                aria-pressed={bookmarked}
                 style={{
                   flex: 1,
                   padding: "8px 0",
@@ -302,7 +416,7 @@ export default function BookDetail() {
           </div>
 
           {/* Book Info */}
-          <div>
+          <div className="min-w-0 text-center md:text-left">
             {/* Genre */}
             <div
               style={{
@@ -434,14 +548,15 @@ export default function BookDetail() {
                 color: "#C4A875",
                 lineHeight: 1.8,
                 marginBottom: 32,
-                maxWidth: 560,
+                maxWidth: "100%",
               }}
+              className="md:max-w-[560px]"
             >
               {book.description}
             </p>
 
             {/* CTA Buttons */}
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3.5">
               <button
                 type="button"
                 onClick={() =>
@@ -450,8 +565,9 @@ export default function BookDetail() {
                     hasProgress ? 'continue_reading' : 'start_reading',
                   )
                 }
+                className="w-full justify-center sm:w-auto"
                 style={{
-                  padding: "14px 36px",
+                  padding: "14px 28px",
                   background: "linear-gradient(135deg, #8B2635 0%, #A83040 100%)",
                   color: "#FEF8EE",
                   border: "none",
@@ -477,32 +593,12 @@ export default function BookDetail() {
                 {primaryCtaLabel}
               </button>
               <button
-                style={{
-                  padding: "14px 28px",
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#F5D9A0",
-                  border: "1.5px solid rgba(232,201,138,0.35)",
-                  borderRadius: 32,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  fontFamily: "'Nunito', sans-serif",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  backdropFilter: "blur(4px)",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    "rgba(255,255,255,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    "rgba(255,255,255,0.08)";
-                }}
+                type="button"
+                onClick={() => setActiveTab('chapters')}
+                className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#FEF8EE] bg-[#FEF8EE] px-7 py-3.5 text-[15px] font-bold text-[#8B2635] shadow-[0_4px_14px_rgba(0,0,0,0.22)] transition hover:border-[#FDF0D5] hover:bg-[#FDF0D5] sm:w-auto"
+                style={{ fontFamily: "'Nunito', sans-serif" }}
               >
-                <List size={15} />
+                <List size={15} strokeWidth={2.25} aria-hidden />
                 View Chapters
               </button>
             </div>
@@ -514,10 +610,8 @@ export default function BookDetail() {
       <div className="page-gutter">
         {/* Tab Navigation */}
         <div
+          className="-mx-1 flex gap-1 overflow-x-auto border-b-2 border-[#E8C98A] pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{
-            display: "flex",
-            gap: 4,
-            borderBottom: "2px solid #E8C98A",
             marginBottom: 40,
             marginTop: 8,
           }}
@@ -526,14 +620,10 @@ export default function BookDetail() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
+              className="shrink-0 whitespace-nowrap border-none bg-transparent px-3 py-3 text-[13px] font-bold capitalize tracking-wide sm:px-5 sm:py-3.5 sm:text-sm"
               style={{
-                padding: "14px 20px",
-                background: "transparent",
-                border: "none",
                 borderBottom: `3px solid ${activeTab === tab ? "#8B2635" : "transparent"}`,
                 color: activeTab === tab ? "#8B2635" : "#9B6B4A",
-                fontSize: 14,
-                fontWeight: 700,
                 cursor: "pointer",
                 fontFamily: "'Nunito', sans-serif",
                 textTransform: "capitalize",
@@ -554,12 +644,7 @@ export default function BookDetail() {
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 320px",
-              gap: 48,
-              paddingBottom: 64,
-            }}
+            className="grid grid-cols-1 gap-8 pb-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:gap-12 lg:pb-16"
           >
             {/* Main content */}
             <div>
@@ -592,10 +677,10 @@ export default function BookDetail() {
                   background: "linear-gradient(145deg, #FEF8EE, #F5E4C0)",
                   border: "1.5px solid #E8C98A",
                   borderRadius: 20,
-                  padding: 32,
+                  padding: "20px 18px",
                   position: "relative",
-                  overflow: "hidden",
                 }}
+                className="overflow-hidden sm:p-8"
               >
                 <div
                   style={{
@@ -720,8 +805,9 @@ export default function BookDetail() {
                         color: "#3D2314",
                         fontWeight: 700,
                         textAlign: "right",
-                        maxWidth: 140,
+                        maxWidth: "55%",
                       }}
+                      className="min-w-0 break-words"
                     >
                       {item.value}
                     </span>
@@ -855,13 +941,7 @@ export default function BookDetail() {
             >
               Select a chapter to begin reading
             </p>
-            <div
-              style={{
-                display: "grid",
-                gap: 12,
-                maxWidth: 680,
-              }}
-            >
+            <div className="mx-auto grid max-w-[680px] gap-3 sm:gap-3">
               {book.chapters.map((ch, i) => (
                 <div
                   key={i}
@@ -962,13 +1042,7 @@ export default function BookDetail() {
             >
               Curated picks based on {book.title}
             </p>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                gap: 24,
-              }}
-            >
+            <div className="book-grid">
               {displaySimilar.map((b) => (
                 <BookCard key={b.id} book={b} />
               ))}

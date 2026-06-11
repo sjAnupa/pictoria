@@ -11,6 +11,7 @@ import chapterRoutes from './routes/chapter.routes'
 import userRoutes from './routes/user.routes'
 import categoryRoutes from './routes/category.routes'
 import progressRoutes from './routes/progress.routes'
+import engagementRoutes from './routes/engagement.routes'
 import adminRoutes from './routes/admin.routes'
 import { errorMiddleware } from './middleware/error.middleware'
 
@@ -42,6 +43,7 @@ app.use('/api/chapters', chapterRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/progress', progressRoutes)
+app.use('/api/engagement', engagementRoutes)
 app.use('/api/admin', adminRoutes)
 
 app.use(errorMiddleware)

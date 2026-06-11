@@ -1,5 +1,5 @@
-import { invalidateReadingProgress, progressQueryKeys } from '../lib/queryClient'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { invalidateReadingProgress, progressQueryKeys } from '../lib/queryClient'
 import {
   fetchBookProgress,
   fetchMyLibrary,
@@ -7,6 +7,7 @@ import {
 } from '../services/progressService'
 import type { SaveProgressPayload } from '../types/progress.types'
 import { resolveMediaUrl } from '../utils/resolveMediaUrl'
+import { useAuthStore } from '../store/authStore'
 
 export function useMyReadingLibrary() {
   return useQuery({
@@ -32,9 +33,11 @@ export function useMyReadingLibrary() {
 }
 
 export function useBookReadingProgress(bookId: string | undefined) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
   return useQuery({
     queryKey: bookId ? progressQueryKeys.book(bookId) : ['progress', 'book', 'none'],
-    enabled: Boolean(bookId),
+    enabled: Boolean(bookId) && isAuthenticated,
     queryFn: () => fetchBookProgress(bookId!),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -57,8 +60,10 @@ export function useTrackReading() {
 
 let pendingProgress: Promise<void> = Promise.resolve()
 
-/** Fire-and-forget progress save — invalidates caches when complete. */
+/** Fire-and-forget progress save — only when signed in. */
 export function trackReading(payload: SaveProgressPayload): void {
+  if (!useAuthStore.getState().isAuthenticated) return
+
   pendingProgress = pendingProgress
     .then(() =>
       saveReadingProgress(payload).then(() => {

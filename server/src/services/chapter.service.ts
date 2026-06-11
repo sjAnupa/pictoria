@@ -1,11 +1,42 @@
 import { Types } from 'mongoose'
 import { Chapter, IChapter } from '../models/Chapter.model'
 import { Book, IBook } from '../models/Book.model'
+import { rewriteLegacyMediaPath } from '../config/mediaPaths'
 import { deleteStoredImage, uploadChapterPage } from './storage.service'
-import { CreateChapterInput, UpdateChapterInput } from '../validators/chapter.validator'
+import {
+  CreateChapterInput,
+  PageManifestEntry,
+  UpdateChapterInput,
+  parsePageManifest,
+} from '../validators/chapter.validator'
 
 function padPageIndex(index: number): string {
   return String(index).padStart(3, '0')
+}
+
+function basenameFromUrl(url: string): string {
+  const segment = url.split('/').pop()?.split('?')[0]
+  return segment && segment.length > 0 ? segment : 'page'
+}
+
+function resolveDisplayName(
+  requested: string | undefined,
+  fallback: string,
+): string {
+  const trimmed = requested?.trim()
+  return trimmed && trimmed.length > 0 ? trimmed : fallback
+}
+
+function previousDisplayName(
+  chapter: IChapter,
+  previousUrls: string[],
+  matchedUrl: string,
+): string {
+  const index = previousUrls.indexOf(matchedUrl)
+  if (index >= 0 && chapter.pageImageNames?.[index]) {
+    return chapter.pageImageNames[index]
+  }
+  return basenameFromUrl(matchedUrl)
 }
 
 export async function findChaptersByBookId(bookId: string) {
@@ -58,9 +89,39 @@ export async function createChapterRecord(
   const book = await Book.findById(input.bookId)
   if (!book) return null
 
-  const pageImageUrls = files.length
-    ? await uploadChapterPages(files, book.slug, input.chapterNumber)
-    : []
+  let pageImageUrls: string[] = []
+  let pageImageNames: string[] = []
+
+  const manifest = parsePageManifest(input.pageManifest)
+  if (manifest && manifest.length > 0) {
+    for (let i = 0; i < manifest.length; i += 1) {
+      const entry = manifest[i]
+      if (entry.type !== 'new') {
+        throw new Error('Invalid page manifest: new chapters only accept new uploads')
+      }
+
+      const file = files[entry.fileIndex]
+      if (!file) {
+        throw new Error('Invalid page manifest: missing upload file')
+      }
+
+      const url = await uploadChapterPage(
+        file,
+        book.slug,
+        input.chapterNumber,
+        `page-${padPageIndex(i + 1)}`,
+      )
+      pageImageUrls.push(url)
+      pageImageNames.push(
+        resolveDisplayName(entry.displayName, file.originalname || basenameFromUrl(url)),
+      )
+    }
+  } else if (files.length) {
+    pageImageUrls = await uploadChapterPages(files, book.slug, input.chapterNumber)
+    pageImageNames = files.map(
+      (file, index) => file.originalname || basenameFromUrl(pageImageUrls[index] ?? ''),
+    )
+  }
 
   const highlightUntil = new Date()
   highlightUntil.setDate(highlightUntil.getDate() + 7)
@@ -70,6 +131,7 @@ export async function createChapterRecord(
     chapterNumber: input.chapterNumber,
     title: input.title,
     pageImageUrls,
+    pageImageNames,
     totalPages: pageImageUrls.length,
     highlightUntil,
   })
@@ -78,6 +140,70 @@ export async function createChapterRecord(
   await book.save()
 
   return chapter
+}
+
+function canonicalStoredUrl(url: string): string {
+  return rewriteLegacyMediaPath(url.trim())
+}
+
+function resolveExistingPageUrl(previousUrls: string[], requested: string): string | undefined {
+  const canon = canonicalStoredUrl(requested)
+  return previousUrls.find((url) => canonicalStoredUrl(url) === canon)
+}
+
+async function applyPageManifest(
+  chapter: IChapter,
+  bookSlug: string,
+  manifest: PageManifestEntry[],
+  files: Express.Multer.File[],
+): Promise<void> {
+  const previousUrls = [...chapter.pageImageUrls]
+  const nextUrls: string[] = []
+  const nextNames: string[] = []
+
+  for (let i = 0; i < manifest.length; i += 1) {
+    const entry = manifest[i]
+    if (entry.type === 'existing') {
+      const matched = resolveExistingPageUrl(previousUrls, entry.url)
+      if (!matched) {
+        throw new Error('Invalid page manifest: unknown existing page')
+      }
+      nextUrls.push(matched)
+      nextNames.push(
+        resolveDisplayName(
+          entry.displayName,
+          previousDisplayName(chapter, previousUrls, matched),
+        ),
+      )
+      continue
+    }
+
+    const file = files[entry.fileIndex]
+    if (!file) {
+      throw new Error('Invalid page manifest: missing upload file')
+    }
+
+    const url = await uploadChapterPage(
+      file,
+      bookSlug,
+      chapter.chapterNumber,
+      `page-${padPageIndex(i + 1)}`,
+    )
+    nextUrls.push(url)
+    nextNames.push(
+      resolveDisplayName(entry.displayName, file.originalname || basenameFromUrl(url)),
+    )
+  }
+
+  for (const url of previousUrls) {
+    if (!nextUrls.includes(url)) {
+      await deleteStoredImage(url)
+    }
+  }
+
+  chapter.pageImageUrls = nextUrls
+  chapter.pageImageNames = nextNames
+  chapter.totalPages = nextUrls.length
 }
 
 export async function updateChapterRecord(
@@ -92,11 +218,17 @@ export async function updateChapterRecord(
   if (input.chapterNumber !== undefined) chapter.chapterNumber = input.chapterNumber
   if (input.highlightUntil !== undefined) chapter.highlightUntil = input.highlightUntil
 
-  if (files && files.length > 0) {
+  const manifest = parsePageManifest(input.pageManifest)
+  if (manifest) {
+    await applyPageManifest(chapter, book.slug, manifest, files ?? [])
+  } else if (files && files.length > 0) {
     for (const url of chapter.pageImageUrls) {
       await deleteStoredImage(url)
     }
     chapter.pageImageUrls = await uploadChapterPages(files, book.slug, chapter.chapterNumber)
+    chapter.pageImageNames = files.map(
+      (file, index) => file.originalname || basenameFromUrl(chapter.pageImageUrls[index] ?? ''),
+    )
     chapter.totalPages = chapter.pageImageUrls.length
   }
 

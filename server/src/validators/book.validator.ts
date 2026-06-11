@@ -3,14 +3,19 @@ import { z } from 'zod'
 export const createBookSchema = z.object({
   title: z.string().min(1),
   author: z.string().min(1),
+  publisher: z.string().optional(),
   description: z.string().min(1),
+  longDescription: z.string().optional(),
   genres: z.union([z.array(z.string()), z.string()]).optional(),
   tags: z.union([z.array(z.string()), z.string()]).optional(),
   language: z.string().optional(),
   publicationYear: z.coerce.number().optional(),
+  pageCount: z.coerce.number().optional(),
   freeChapterLimit: z.coerce.number().optional(),
   accessType: z.enum(['free', 'registered', 'premium']).optional(),
   status: z.enum(['draft', 'published', 'hidden', 'archived']).optional(),
+  featured: z.coerce.boolean().optional(),
+  newArrival: z.coerce.boolean().optional(),
 })
 
 export const updateBookSchema = createBookSchema.partial()
