@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { BooksIllustration } from '../illustrations/BooksIllustration'
 import AuthAlert from './AuthAlert'
 import { authGuidanceCopy, type AuthGuidanceKind } from './authGuidance'
 import FacebookAuthButton, { isFacebookSignInEnabled } from './FacebookAuthButton'
@@ -42,7 +41,13 @@ function BrandMark({ className = '' }: { className?: string }) {
       className={`inline-flex items-center gap-3 no-underline ${className}`}
       title="Pictoria home"
     >
-      <img src="/logo-mark.png" alt="" className="h-11 w-11 object-contain" decoding="async" />
+      <img
+        src="/logo-mark.png"
+        alt=""
+        decoding="async"
+        draggable={false}
+        className="h-11 w-11 shrink-0 object-contain"
+      />
       <span
         className="font-pictoria text-[1.75rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314]"
         style={{ fontFeatureSettings: '"opsz" 72' }}
@@ -71,7 +76,13 @@ function BrandPanel() {
       </div>
 
       <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-10 py-8">
-        <BooksIllustration size={260} />
+        <img
+          src="/logo-mark.png"
+          alt=""
+          decoding="async"
+          draggable={false}
+          className="h-[260px] w-[260px] max-w-full object-contain"
+        />
         <p
           className="font-pictoria mt-10 max-w-[280px] text-center text-[1.65rem] font-semibold leading-snug text-[#3D2314]"
           style={{ fontFeatureSettings: '"opsz" 72' }}

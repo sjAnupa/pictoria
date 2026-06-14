@@ -14,13 +14,13 @@
     },
     {
       "src": "/favicon.png",
-      "sizes": "512x512",
+      "sizes": "32x32",
       "type": "image/png",
       "purpose": "any"
     },
     {
       "src": "/logo-mark.png",
-      "sizes": "512x512",
+      "sizes": "720x720",
       "type": "image/png",
       "purpose": "maskable"
     }

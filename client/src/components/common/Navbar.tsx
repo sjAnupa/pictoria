@@ -50,10 +50,9 @@ export default function Navbar() {
           <img
             src="/logo-mark.png"
             alt=""
-            width={56}
-            height={56}
             decoding="async"
-            className="h-11 w-11 shrink-0 object-contain sm:h-14 sm:w-14 [image-rendering:-webkit-optimize-contrast]"
+            draggable={false}
+            className="h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
           />
           <span
             className="font-pictoria text-[1.2rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314] sm:text-[1.5rem]"

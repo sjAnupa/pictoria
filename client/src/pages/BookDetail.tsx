@@ -17,7 +17,6 @@ import { useBookBySlug, useAllPublishedBooksForSimilar } from '../hooks/useBooks
 import { useBookReadingProgress, trackReading } from '../hooks/useReadingProgress'
 import type { SaveProgressPayload } from '../types/progress.types'
 import BookCard from '../components/books/BookCard'
-import { BooksIllustration } from '../components/illustrations/BooksIllustration'
 import Navbar from '../components/common/Navbar'
 import Footer from '../components/common/Footer'
 import PageMeta from '../components/common/PageMeta'
@@ -144,7 +143,13 @@ export default function BookDetail() {
         <main
           className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16"
         >
-          <BooksIllustration size={180} />
+          <img
+            src="/logo-mark.png"
+            alt=""
+            decoding="async"
+            draggable={false}
+            className="h-[180px] w-[180px] object-contain"
+          />
           <div className="font-pictoria text-[28px] text-[#3D2314]">Book Not Found</div>
           <Link to="/" style={{ color: '#8B2635', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>
             ← Back to home

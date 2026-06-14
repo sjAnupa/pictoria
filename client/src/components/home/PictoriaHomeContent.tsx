@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { BookOpen, ChevronRight, Sparkles, TrendingUp, Star } from 'lucide-react'
-import { BooksIllustration } from '../illustrations/BooksIllustration'
 import BookCard from '../books/BookCard'
 import { useFeaturedBooks, useNewBooks } from '../../hooks/useBooks'
 import { useCatalogStats } from '../../hooks/useAdminBooks'
@@ -278,7 +277,13 @@ export default function PictoriaHomeContent() {
                 }}
               />
               <div style={{ position: 'relative', zIndex: 1 }} className="scale-[0.82] sm:scale-90 lg:scale-100">
-                <BooksIllustration size={300} />
+                <img
+                  src="/logo-mark.png"
+                  alt=""
+                  decoding="async"
+                  draggable={false}
+                  className="mx-auto h-[300px] w-[300px] max-w-full object-contain"
+                />
               </div>
             </div>
           </div>

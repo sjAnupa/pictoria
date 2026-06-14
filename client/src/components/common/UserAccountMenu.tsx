@@ -125,65 +125,66 @@ export default function UserAccountMenu() {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
-        {confirmOpen
-          ? createPortal(
-              <motion.div
-                className="fixed inset-0 z-[500] flex min-h-[100dvh] items-center justify-center p-4 sm:p-6"
+      {createPortal(
+        <AnimatePresence>
+          {confirmOpen ? (
+            <motion.div
+              key="logout-confirm"
+              className="fixed inset-0 z-[9999] flex min-h-[100dvh] items-center justify-center p-4 sm:p-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="logout-dialog-title"
+            >
+              <motion.button
+                type="button"
+                aria-label="Close dialog"
+                className="absolute inset-0 bg-[#3D2314]/40 backdrop-blur-[3px]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="logout-dialog-title"
+                onClick={() => setConfirmOpen(false)}
+              />
+
+              <motion.div
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="relative z-[1] w-full max-w-[400px] rounded-2xl border border-[#E8C98A] bg-[#FEF8EE] p-6 shadow-[0_24px_64px_rgba(90,40,10,0.22)]"
               >
-                <motion.button
-                  type="button"
-                  aria-label="Close dialog"
-                  className="absolute inset-0 bg-[#3D2314]/40 backdrop-blur-[3px]"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setConfirmOpen(false)}
-                />
+                <h2 id="logout-dialog-title" className="font-pictoria text-xl font-bold text-[#3D2314]">
+                  Sign out?
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#6B4226]">
+                  You will need to sign in again to access your library and reading progress.
+                </p>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 16, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 16, scale: 0.96 }}
-                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative w-full max-w-[400px] rounded-2xl border border-[#E8C98A] bg-[#FEF8EE] p-6 shadow-[0_24px_64px_rgba(90,40,10,0.22)]"
-                >
-                  <h2 id="logout-dialog-title" className="font-pictoria text-xl font-bold text-[#3D2314]">
-                    Sign out?
-                  </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-[#6B4226]">
-                    You will need to sign in again to access your library and reading progress.
-                  </p>
-
-                  <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmOpen(false)}
-                      className="rounded-full border border-[#E8C98A] bg-[#FDF0D5] px-5 py-2.5 text-sm font-bold text-[#6B4226] transition-colors duration-150 hover:bg-[#F5D9A0]/70"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="rounded-full bg-gradient-to-br from-[#8B2635] to-[#A83040] px-5 py-2.5 text-sm font-bold text-[#FEF8EE] shadow-[0_4px_14px_rgba(139,38,53,0.35)] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      Yes, sign out
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>,
-              document.body,
-            )
-          : null}
-      </AnimatePresence>
+                <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmOpen(false)}
+                    className="rounded-full border border-[#E8C98A] bg-[#FDF0D5] px-5 py-2.5 text-sm font-bold text-[#6B4226] transition-colors duration-150 hover:bg-[#F5D9A0]/70"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="rounded-full bg-gradient-to-br from-[#8B2635] to-[#A83040] px-5 py-2.5 text-sm font-bold text-[#FEF8EE] shadow-[0_4px_14px_rgba(139,38,53,0.35)] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Yes, sign out
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   )
 }

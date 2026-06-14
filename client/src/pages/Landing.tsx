@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { BookOpen, Sparkles } from 'lucide-react'
-import { BooksIllustration } from '../components/illustrations/BooksIllustration'
 import { FONT_DISPLAY } from '../theme/typography'
 
 const Landing = () => {
@@ -158,7 +157,13 @@ const Landing = () => {
               boxShadow: '0 20px 60px rgba(90,40,10,0.22), inset 0 1px 0 rgba(255,230,160,0.6)',
             }}
           >
-            <BooksIllustration size={280} />
+            <img
+              src="/logo-mark.png"
+              alt=""
+              decoding="async"
+              draggable={false}
+              className="h-[280px] w-[280px] object-contain"
+            />
           </div>
         </div>
       </main>
