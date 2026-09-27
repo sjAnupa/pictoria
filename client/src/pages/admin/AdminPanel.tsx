@@ -187,6 +187,7 @@ function DashboardView() {
   const DAILY_READS = data?.dailyReads ?? []
   const GENRE_DATA = data?.genreDistribution ?? []
   const MOST_READ_BOOKS = data?.mostReadBooks ?? []
+  const MOST_LIKED_BOOKS = data?.mostLikedBooks ?? []
   const TOP_READERS = data?.topReaders ?? []
   const totals = data?.totals
 
@@ -220,6 +221,18 @@ function DashboardView() {
       return (
         <div style={{ background: "#1F2937", borderRadius: 8, padding: "8px 12px" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#F9FAFB" }}>{v.toLocaleString()} reads</div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const LikesTooltip = ({ active, payload }: BarTooltipProps) => {
+    if (active && payload && payload.length) {
+      const v = payload[0]?.value ?? 0
+      return (
+        <div style={{ background: "#1F2937", borderRadius: 8, padding: "8px 12px" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#F9FAFB" }}>{v.toLocaleString()} likes</div>
         </div>
       );
     }
@@ -271,6 +284,7 @@ function DashboardView() {
         <StatCard icon={<Users size={20} />}        label="Registered readers" value={(totals?.users ?? 0).toLocaleString()} sub="Reader accounts"  color="#059669" />
         <StatCard icon={<TrendingUp size={20} />}  label="Total Reads"     value={(totals?.totalReads ?? 0).toLocaleString()} sub="Start events" color={adminTheme.accent} />
         <StatCard icon={<Eye size={20} />}         label="Active Today"    value={String(totals?.activeToday ?? 0)}    sub="Readers today"  color="#C4776A" />
+        <StatCard icon={<Eye size={20} />}         label="Total Views"     value={(totals?.totalViews ?? 0).toLocaleString()} sub="Book page views" color="#9B6B4A" />
       </div>
 
       <div className="admin-chart-grid mb-3.5">
@@ -332,6 +346,28 @@ function DashboardView() {
         </SectionCard>
 
         <TopReadersPanel readers={TOP_READERS} />
+      </div>
+
+      <div className="mt-3.5">
+        <SectionCard title="Most Liked Books">
+          {MOST_LIKED_BOOKS.length === 0 ? (
+            <p style={{ padding: "20px 16px", fontSize: 13, color: adminTheme.textSoft }}>
+              No likes yet — once readers start liking books, the most-liked titles show up here.
+            </p>
+          ) : (
+            <div style={{ padding: "16px 4px 8px" }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={MOST_LIKED_BOOKS} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis type="category" dataKey="title" tick={{ fontSize: 11, fill: "#374151" }} axisLine={false} tickLine={false} width={100} />
+                  <Tooltip content={<LikesTooltip />} />
+                  <Bar dataKey="likes" fill="#8B2635" radius={[0, 4, 4, 0]} barSize={14} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </SectionCard>
       </div>
       </>
       )}
@@ -825,7 +861,7 @@ function Sidebar({
             <BookOpen size={16} color="#fff" aria-hidden />
           </div>
           <div className="min-w-0">
-            <div className="font-pictoria truncate text-base font-semibold text-[#F5D9A0]">Pictoria</div>
+            <div className="font-pictoriya truncate text-base font-semibold text-[#F5D9A0]">Pictoriya</div>
             <div className="text-[10px] text-[#9B6B4A]">Admin</div>
           </div>
         </div>
@@ -918,7 +954,7 @@ function PageHeader({
           <Menu size={18} aria-hidden />
         </button>
         <div className="min-w-0">
-        <h1 className="font-pictoria m-0 truncate text-base font-semibold text-[#3D2314] sm:text-lg">
+        <h1 className="font-pictoriya m-0 truncate text-base font-semibold text-[#3D2314] sm:text-lg">
           {PAGE_TITLES[view] ?? "Admin"}
         </h1>
         <div className="mt-0.5 truncate text-[11px] text-[#9B6B4A] sm:text-xs">

@@ -1,7 +1,24 @@
 import { create } from 'zustand'
 import type { User } from '../types/user.types'
 
-const USER_STORAGE_KEY = 'pictoria_user'
+const USER_STORAGE_KEY = 'pictoriya_user'
+const TOKEN_STORAGE_KEY = 'pictoriya_token'
+const LEGACY_USER_KEY = 'pictoria_user'
+const LEGACY_TOKEN_KEY = 'pictoria_token'
+
+function migrateLegacyKeys() {
+  if (typeof localStorage === 'undefined') return
+  if (!localStorage.getItem(TOKEN_STORAGE_KEY) && localStorage.getItem(LEGACY_TOKEN_KEY)) {
+    localStorage.setItem(TOKEN_STORAGE_KEY, localStorage.getItem(LEGACY_TOKEN_KEY)!)
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
+  }
+  if (!localStorage.getItem(USER_STORAGE_KEY) && localStorage.getItem(LEGACY_USER_KEY)) {
+    localStorage.setItem(USER_STORAGE_KEY, localStorage.getItem(LEGACY_USER_KEY)!)
+    localStorage.removeItem(LEGACY_USER_KEY)
+  }
+}
+
+migrateLegacyKeys()
 
 function readStoredUser(): User | null {
   if (typeof localStorage === 'undefined') return null
@@ -30,11 +47,10 @@ interface AuthState {
 }
 
 function readInitialAuth(): Pick<AuthState, 'user' | 'token' | 'isAuthenticated'> {
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('pictoria_token') : null
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null
 
-  // Clear stale tokens from earlier dev-only auth experiments.
   if (token === 'dev-dummy-token' || token?.startsWith('mock-jwt-')) {
-    localStorage.removeItem('pictoria_token')
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
     persistUser(null)
     return { user: null, token: null, isAuthenticated: false }
   }
@@ -50,7 +66,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: initial.token,
   isAuthenticated: initial.isAuthenticated,
   setAuth: (user, token) => {
-    localStorage.setItem('pictoria_token', token)
+    localStorage.setItem(TOKEN_STORAGE_KEY, token)
     persistUser(user)
     set({ user, token, isAuthenticated: true })
   },
@@ -59,7 +75,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user })
   },
   logout: () => {
-    localStorage.removeItem('pictoria_token')
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
     persistUser(null)
     set({ user: null, token: null, isAuthenticated: false })
   },

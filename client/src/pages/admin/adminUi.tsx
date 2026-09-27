@@ -130,7 +130,7 @@ export function PublicSiteButton({ variant = 'header', fullWidth }: PublicSiteBu
   return (
     <Link
       to="/"
-      title="Open the public Pictoria website"
+      title="Open the public Pictoriya website"
       style={{
         display: 'inline-flex',
         alignItems: 'center',

@@ -16,7 +16,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<Response
   if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true'
 
   if (req.query.search) {
-    const search = String(req.query.search)
+    const search = String(req.query.search).slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     andClauses.push({
       $or: [
         { name: { $regex: search, $options: 'i' } },

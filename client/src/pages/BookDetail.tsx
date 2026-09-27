@@ -12,6 +12,7 @@ import {
   Play,
   List,
   CheckCircle2,
+  Eye,
 } from 'lucide-react'
 import { useBookBySlug, useAllPublishedBooksForSimilar } from '../hooks/useBooks'
 import { useBookReadingProgress, trackReading } from '../hooks/useReadingProgress'
@@ -21,17 +22,21 @@ import Navbar from '../components/common/Navbar'
 import Footer from '../components/common/Footer'
 import PageMeta from '../components/common/PageMeta'
 import { useBookEngagement, useToggleBookLike, useToggleSavedBook } from '../hooks/useBookEngagement'
+import { useBookReviews, useDeleteReview, useSubmitReview, useToggleReviewHidden } from '../hooks/useReviews'
+import { useTrackBookView } from '../hooks/useBookViews'
 import { useAuthStore } from '../store/authStore'
 import { canAccessAdminPortal } from '../utils/authPermissions'
 import { getChapterAccess } from '../utils/chapterAccess'
 import { findSimilarBooks } from '../utils/similarBooks'
 import { FONT_DISPLAY } from '../theme/typography'
 import AdminPreviewStatusBadge from '../components/books/AdminPreviewStatusBadge'
+import RatingModal from '../components/books/RatingModal'
+import ReviewList from '../components/books/ReviewList'
 
-type BookDetailTab = 'overview' | 'chapters' | 'similar'
+type BookDetailTab = 'overview' | 'chapters' | 'reviews' | 'similar'
 
 function tabFromParam(value: string | null): BookDetailTab {
-  if (value === 'chapters' || value === 'similar' || value === 'overview') return value
+  if (value === 'chapters' || value === 'similar' || value === 'reviews' || value === 'overview') return value
   return 'overview'
 }
 
@@ -42,6 +47,14 @@ const genreColors: Record<string, { bg: string; text: string }> = {
   Romance: { bg: "#F5D5E8", text: "#8B1A5F" },
   "Children's": { bg: "#D5F5E0", text: "#1A8B4A" },
   Humor: { bg: '#F5F5D5', text: '#6B6B1A' },
+}
+
+function formatCompactCount(count: number): string {
+  if (count >= 1000) {
+    const rounded = Math.floor(count / 100) / 10
+    return `${rounded % 1 === 0 ? Math.floor(count / 1000) : rounded}K`
+  }
+  return String(count)
 }
 
 function chapterReadMetrics(totalPages: number, chapterCount: number) {
@@ -66,6 +79,15 @@ export default function BookDetail() {
   const { data: engagement } = useBookEngagement(book?.id)
   const toggleLike = useToggleBookLike(book?.id ?? '')
   const toggleSave = useToggleSavedBook(book?.id ?? '')
+
+  const [reviewPage, setReviewPage] = useState(1)
+  const [ratingModalOpen, setRatingModalOpen] = useState(false)
+  const { data: reviewData } = useBookReviews(book?.id, reviewPage)
+  const submitReviewMutation = useSubmitReview(book?.id ?? '')
+  const deleteReviewMutation = useDeleteReview(book?.id ?? '')
+  const toggleReviewHiddenMutation = useToggleReviewHidden(book?.id ?? '')
+
+  useTrackBookView(book?.id)
 
   useEffect(() => {
     setActiveTab(tabFromParam(searchParams.get('tab')))
@@ -150,7 +172,7 @@ export default function BookDetail() {
             draggable={false}
             className="h-[180px] w-[180px] object-contain"
           />
-          <div className="font-pictoria text-[28px] text-[#3D2314]">Book Not Found</div>
+          <div className="font-pictoriya text-[28px] text-[#3D2314]">Book Not Found</div>
           <Link to="/" style={{ color: '#8B2635', textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>
             ← Back to home
           </Link>
@@ -183,6 +205,29 @@ export default function BookDetail() {
       return
     }
     toggleSave.mutate()
+  }
+
+  const handleOpenRatingModal = () => {
+    if (!isAuthenticated) {
+      requireSignIn()
+      return
+    }
+    setRatingModalOpen(true)
+  }
+
+  const handleSubmitReview = (rating: number, comment: string) => {
+    submitReviewMutation.mutate(
+      { rating, comment: comment || undefined },
+      { onSuccess: () => setRatingModalOpen(false) },
+    )
+  }
+
+  const handleToggleReviewHidden = (reviewId: string, hidden: boolean) => {
+    toggleReviewHiddenMutation.mutate({ reviewId, hidden })
+  }
+
+  const handleDeleteReview = (reviewId: string) => {
+    deleteReviewMutation.mutate(reviewId)
   }
 
   const bookJsonLd = {
@@ -385,11 +430,11 @@ export default function BookDetail() {
                   flex: 1,
                   padding: "8px 0",
                   background: bookmarked
-                    ? "rgba(232,184,75,0.2)"
+                    ? "rgba(139,38,53,0.3)"
                     : "rgba(255,255,255,0.1)",
-                  border: `1px solid ${bookmarked ? "rgba(232,184,75,0.5)" : "rgba(232,201,138,0.3)"}`,
+                  border: `1px solid ${bookmarked ? "rgba(139,38,53,0.6)" : "rgba(232,201,138,0.3)"}`,
                   borderRadius: 10,
-                  color: bookmarked ? "#E8B84B" : "#9B6B4A",
+                  color: bookmarked ? "#C4776A" : "#9B6B4A",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -402,8 +447,8 @@ export default function BookDetail() {
               >
                 <Bookmark
                   size={13}
-                  fill={bookmarked ? "#E8B84B" : "none"}
-                  color={bookmarked ? "#E8B84B" : "#9B6B4A"}
+                  fill={bookmarked ? "#C4776A" : "none"}
+                  color={bookmarked ? "#C4776A" : "#9B6B4A"}
                 />
                 {bookmarked ? "Saved" : "Save"}
               </button>
@@ -500,8 +545,27 @@ export default function BookDetail() {
                   {book.rating}
                 </span>
                 <span style={{ fontSize: 13, color: "#9B6B4A" }}>
-                  · 2.4k reviews
+                  · {book.totalReviews.toLocaleString()} {book.totalReviews === 1 ? 'review' : 'reviews'}
                 </span>
+                {book.reviewsEnabled ? (
+                  <button
+                    type="button"
+                    onClick={handleOpenRatingModal}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#E8B84B",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                      textUnderlineOffset: 3,
+                      padding: 0,
+                    }}
+                  >
+                    {reviewData?.myReview ? 'Edit your rating' : 'Rate this book'}
+                  </button>
+                ) : null}
               </div>
               <div
                 style={{
@@ -526,6 +590,20 @@ export default function BookDetail() {
               >
                 <Clock size={14} />~{Math.round(book.pages / 30)} hrs read
               </div>
+              {book.totalViews > 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    color: "#9B6B4A",
+                    fontSize: 13,
+                  }}
+                >
+                  <Eye size={14} />
+                  {formatCompactCount(book.totalViews)} views
+                </div>
+              ) : null}
             </div>
 
             {/* Tags */}
@@ -623,7 +701,10 @@ export default function BookDetail() {
             marginTop: 8,
           }}
         >
-          {(["overview", "chapters", "similar"] as const).map((tab) => (
+          {(book.reviewsEnabled
+            ? (["overview", "chapters", "reviews", "similar"] as const)
+            : (["overview", "chapters", "similar"] as const)
+          ).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -642,6 +723,8 @@ export default function BookDetail() {
                 ? "Overview"
                 : tab === "chapters"
                 ? "Chapters"
+                : tab === "reviews"
+                ? "Reviews"
                 : "Similar Books"}
             </button>
           ))}
@@ -1018,6 +1101,66 @@ export default function BookDetail() {
           </div>
         )}
 
+        {/* Reviews Tab */}
+        {activeTab === "reviews" && book.reviewsEnabled && (
+          <div style={{ paddingBottom: 64 }}>
+            <div className="flex flex-wrap items-center justify-between gap-4" style={{ marginBottom: 28 }}>
+              <div>
+                <h2
+                  style={{
+                    fontFamily: FONT_DISPLAY,
+                    fontWeight: 700,
+                    fontSize: 22,
+                    color: "#3D2314",
+                    marginBottom: 8,
+                  }}
+                >
+                  Reader Reviews
+                </h2>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 2 }}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={15}
+                        fill={s <= Math.round(book.rating) ? "#E8B84B" : "none"}
+                        color={s <= Math.round(book.rating) ? "#E8B84B" : "#C9AE85"}
+                      />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#3D2314" }}>{book.rating}</span>
+                  <span style={{ fontSize: 13, color: "#9B6B4A" }}>
+                    · {book.totalReviews.toLocaleString()} {book.totalReviews === 1 ? "review" : "reviews"}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenRatingModal}
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-br from-[#8B2635] to-[#A83040] px-5 py-2.5 text-sm font-bold text-[#FEF8EE] shadow-[0_4px_14px_rgba(139,38,53,0.35)] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Star size={14} fill="#FEF8EE" />
+                {reviewData?.myReview ? "Edit your review" : "Rate this book"}
+              </button>
+            </div>
+
+            <ReviewList
+              reviews={reviewData?.reviews ?? []}
+              isAdmin={isAdmin}
+              page={reviewData?.currentPage ?? reviewPage}
+              totalPages={reviewData?.totalPages ?? 1}
+              onPageChange={setReviewPage}
+              onToggleHidden={isAdmin ? handleToggleReviewHidden : undefined}
+              onDelete={handleDeleteReview}
+              busyReviewId={
+                toggleReviewHiddenMutation.isPending || deleteReviewMutation.isPending
+                  ? (toggleReviewHiddenMutation.variables?.reviewId ?? deleteReviewMutation.variables ?? null)
+                  : null
+              }
+            />
+          </div>
+        )}
+
         {/* Similar Books Tab */}
         {activeTab === "similar" && (
           <div style={{ paddingBottom: 64 }}>
@@ -1050,6 +1193,15 @@ export default function BookDetail() {
           </div>
         )}
       </div>
+      <RatingModal
+        open={ratingModalOpen}
+        bookTitle={book.title}
+        initialRating={reviewData?.myReview?.rating ?? 0}
+        initialComment={reviewData?.myReview?.comment ?? ''}
+        submitting={submitReviewMutation.isPending}
+        onClose={() => setRatingModalOpen(false)}
+        onSubmit={handleSubmitReview}
+      />
       <Footer />
     </div>
   )

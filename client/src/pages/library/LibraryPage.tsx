@@ -191,7 +191,7 @@ export default function LibraryPage() {
     <div className="flex min-h-screen flex-col bg-[#FDF0D5] font-sans">
       <PageMeta
         title="Browse Storybook Catalog"
-        description="Search and browse illustrated storybooks on Pictoria. Filter by genre, tag, and rating — read free previews instantly."
+        description="Search and browse illustrated storybooks on Pictoriya. Filter by genre, tag, and rating — read free previews instantly."
         canonicalPath="/library"
       />
       <Navbar />
@@ -202,7 +202,7 @@ export default function LibraryPage() {
           <header className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <p className="font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-[#8B2635]/90">Catalog</p>
-              <h1 className="font-pictoria text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-tight tracking-tight text-[#3D2314]">
+              <h1 className="font-pictoriya text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-tight tracking-tight text-[#3D2314]">
                 Browse catalog
               </h1>
               <p className="font-sans mt-2 max-w-2xl text-sm leading-relaxed text-[#6B4226]">
@@ -396,12 +396,12 @@ export default function LibraryPage() {
             </div>
           ) : isError ? (
             <div className="relative z-0 rounded-xl border border-dashed border-[#E8C98A] bg-[#FEF8EE]/50 py-24 text-center">
-              <p className="font-pictoria text-xl text-[#3D2314]">Could not load books</p>
+              <p className="font-pictoriya text-xl text-[#3D2314]">Could not load books</p>
               <p className="font-sans mt-2 text-sm text-[#9B6B4A]">Check that the server is running and try again.</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="relative z-0 rounded-xl border border-dashed border-[#E8C98A] bg-[#FEF8EE]/50 py-24 text-center">
-              <p className="font-pictoria text-xl text-[#3D2314]">No matches</p>
+              <p className="font-pictoriya text-xl text-[#3D2314]">No matches</p>
               <p className="font-sans mt-2 text-sm text-[#9B6B4A]">Try clearing search or filters.</p>
             </div>
           ) : (

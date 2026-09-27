@@ -17,6 +17,8 @@ import {
   ImageIcon,
   Loader2,
   Lock,
+  MessageSquare,
+  MessageSquareOff,
   Plus,
   Trash2,
   X,
@@ -68,6 +70,7 @@ type BookFormState = {
   description: string
   longDescription: string
   accessType: 'free' | 'registered' | 'premium'
+  reviewsEnabled: boolean
   chapters: FormChapter[]
 }
 
@@ -262,6 +265,7 @@ function formFromEditRecord(record: AdminBookEditRecord): BookFormState {
     description: record.description ?? '',
     longDescription: record.longDescription ?? '',
     accessType: record.accessType ?? 'free',
+    reviewsEnabled: record.reviewsEnabled !== false,
     chapters:
       chapters.length > 0
         ? chapters.map((ch) => ({
@@ -329,6 +333,7 @@ export default function BookFormView({ editingBook, onBack }: BookFormViewProps)
     description: '',
     longDescription: '',
     accessType: (editingBook?.accessType as BookFormState['accessType']) ?? 'free',
+    reviewsEnabled: true,
     chapters: [makeDefaultChapter(1)],
   }))
 
@@ -446,6 +451,7 @@ export default function BookFormView({ editingBook, onBack }: BookFormViewProps)
         pageCount: form.pages ? Number(form.pages) : undefined,
         accessType: form.accessType,
         status: 'draft' as const,
+        reviewsEnabled: form.reviewsEnabled,
         coverFile,
       }
 
@@ -647,7 +653,7 @@ export default function BookFormView({ editingBook, onBack }: BookFormViewProps)
                 <StyledInput
                   value={form.publisher}
                   onChange={(v) => setField('publisher', v)}
-                  placeholder="e.g. Pictoria Press (optional)"
+                  placeholder="e.g. Pictoriya Press (optional)"
                 />
               </FormField>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
@@ -935,6 +941,74 @@ export default function BookFormView({ editingBook, onBack }: BookFormViewProps)
                     </button>
                   ))}
                 </div>
+              </FormField>
+
+              <FormField label="Reader reviews">
+                <button
+                  type="button"
+                  onClick={() => setField('reviewsEnabled', !form.reviewsEnabled)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    border: `1.5px solid ${form.reviewsEnabled ? adminTheme.primary : '#E5E7EB'}`,
+                    borderRadius: 8,
+                    background: form.reviewsEnabled ? `${adminTheme.primary}0D` : '#FFFFFF',
+                    cursor: 'pointer',
+                    fontFamily: ADMIN_FONT,
+                    textAlign: 'left',
+                    width: '100%',
+                    marginTop: 2,
+                  }}
+                >
+                  <span style={{ color: form.reviewsEnabled ? adminTheme.primary : '#9CA3AF' }}>
+                    {form.reviewsEnabled ? <MessageSquare size={13} /> : <MessageSquareOff size={13} />}
+                  </span>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: form.reviewsEnabled ? adminTheme.primary : '#374151',
+                      }}
+                    >
+                      {form.reviewsEnabled ? 'Reviews enabled' : 'Reviews hidden'}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>
+                      {form.reviewsEnabled
+                        ? 'Readers can rate and review this book'
+                        : 'Reviews tab is hidden from the public page'}
+                    </div>
+                  </div>
+                  <div
+                    aria-hidden
+                    style={{
+                      marginLeft: 'auto',
+                      width: 34,
+                      height: 20,
+                      borderRadius: 999,
+                      background: form.reviewsEnabled ? adminTheme.primary : '#D1D5DB',
+                      position: 'relative',
+                      transition: 'background 0.15s',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: 2,
+                        left: form.reviewsEnabled ? 16 : 2,
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: '#FFFFFF',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                        transition: 'left 0.15s',
+                      }}
+                    />
+                  </div>
+                </button>
               </FormField>
             </div>
           </SectionCard>

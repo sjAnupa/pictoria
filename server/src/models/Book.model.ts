@@ -22,10 +22,13 @@ export interface IBook extends Document {
   status: BookStatus
   featured: boolean
   newArrival: boolean
+  reviewsEnabled: boolean
   stats: {
     totalReads: number
     averageRating: number
     totalReviews: number
+    totalLikes: number
+    totalViews: number
   }
   uploadedBy: Types.ObjectId
   createdAt: Date
@@ -60,11 +63,14 @@ const BookSchema = new Schema<IBook>(
       totalReads: { type: Number, default: 0 },
       averageRating: { type: Number, default: 0 },
       totalReviews: { type: Number, default: 0 },
+      totalLikes: { type: Number, default: 0 },
+      totalViews: { type: Number, default: 0 },
     },
     longDescription: { type: String },
     pageCount: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
     newArrival: { type: Boolean, default: false },
+    reviewsEnabled: { type: Boolean, default: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true },

@@ -45,7 +45,7 @@ export default function Navbar() {
           to="/"
           className="flex min-w-0 shrink-0 items-center gap-2.5 no-underline sm:gap-3"
           style={{ textDecoration: 'none' }}
-          title="Pictoria — home"
+          title="Pictoriya — home"
         >
           <img
             src="/logo-mark.png"
@@ -55,10 +55,10 @@ export default function Navbar() {
             className="h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
           />
           <span
-            className="font-pictoria text-[1.2rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314] sm:text-[1.5rem]"
+            className="font-pictoriya text-[1.2rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314] sm:text-[1.5rem]"
             style={{ fontFeatureSettings: '"opsz" 72' }}
           >
-            Pictoria
+            Pictoriya
           </span>
         </Link>
 

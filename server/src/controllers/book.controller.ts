@@ -10,6 +10,7 @@ import {
   findBookById,
   findBookBySlug,
   findBookForAdminEdit,
+  findMostLikedBooks,
   updateBookRecord,
 } from '../services/book.service'
 import { getCatalogStats as computeCatalogStats } from '../services/admin.service'
@@ -23,13 +24,14 @@ export const getAllBooks = async (req: Request, res: Response): Promise<Response
   const isAdmin = isCatalogAdmin(req)
   const statusQuery = req.query.status as string | undefined
 
+  // Non-admins may only ever see published books — ignore client status filters.
   let status: string
-  if (statusQuery === 'all') {
-    status = 'all'
-  } else if (statusQuery) {
-    status = statusQuery
-  } else if (isAdmin) {
-    status = 'all'
+  if (isAdmin) {
+    if (statusQuery === 'all' || !statusQuery) {
+      status = 'all'
+    } else {
+      status = statusQuery
+    }
   } else {
     status = 'published'
   }
@@ -46,6 +48,12 @@ export const getAllBooks = async (req: Request, res: Response): Promise<Response
   })
 
   return successResponse(res, result)
+}
+
+export const getMostLikedBooks = async (req: Request, res: Response): Promise<Response> => {
+  const limit = req.query.limit ? Number(req.query.limit) : 12
+  const books = await findMostLikedBooks(Number.isFinite(limit) ? limit : 12)
+  return successResponse(res, { books })
 }
 
 export const getBookBySlug = async (req: Request, res: Response): Promise<Response> => {

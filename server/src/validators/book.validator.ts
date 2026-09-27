@@ -16,6 +16,7 @@ export const createBookSchema = z.object({
   status: z.enum(['draft', 'published', 'hidden', 'archived']).optional(),
   featured: z.coerce.boolean().optional(),
   newArrival: z.coerce.boolean().optional(),
+  reviewsEnabled: z.coerce.boolean().optional(),
 })
 
 export const updateBookSchema = createBookSchema.partial()

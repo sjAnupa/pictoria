@@ -50,8 +50,10 @@ export async function toggleBookLike(userId: string, bookId: string): Promise<Bo
   const existing = await BookLike.findOne({ userId: uid, bookId: bid })
   if (existing) {
     await existing.deleteOne()
+    await Book.updateOne({ _id: bid, 'stats.totalLikes': { $gt: 0 } }, { $inc: { 'stats.totalLikes': -1 } })
   } else {
     await BookLike.create({ userId: uid, bookId: bid })
+    await Book.updateOne({ _id: bid }, { $inc: { 'stats.totalLikes': 1 } })
   }
 
   return getBookEngagement(userId, bookId)

@@ -23,6 +23,9 @@ export function mapApiBook(raw: ApiBookRecord): Book {
     description: raw.description,
     longDescription: raw.longDescription ?? raw.description,
     rating: raw.stats?.averageRating ?? 0,
+    totalReviews: raw.stats?.totalReviews ?? 0,
+    totalLikes: raw.stats?.totalLikes ?? 0,
+    totalViews: raw.stats?.totalViews ?? 0,
     pages: raw.pageCount ?? 0,
     year: raw.publicationYear ?? new Date().getFullYear(),
     tags: raw.tags ?? [],
@@ -32,6 +35,7 @@ export function mapApiBook(raw: ApiBookRecord): Book {
     freeChapterLimit: raw.freeChapterLimit ?? 3,
     featured: Boolean(raw.featured),
     isNew: Boolean(raw.newArrival),
+    reviewsEnabled: raw.reviewsEnabled !== false,
   }
 }
 

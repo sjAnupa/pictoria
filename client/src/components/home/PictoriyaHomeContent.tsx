@@ -1,23 +1,69 @@
 import { Link } from 'react-router-dom'
-import { BookOpen, ChevronRight, Sparkles, TrendingUp, Star } from 'lucide-react'
+import { BookOpen, ChevronRight, Sparkles, TrendingUp, Star, Heart } from 'lucide-react'
 import BookCard from '../books/BookCard'
-import { useFeaturedBooks, useNewBooks } from '../../hooks/useBooks'
+import { useFeaturedBooks, useMostLikedBooks, useNewBooks } from '../../hooks/useBooks'
 import { useCatalogStats } from '../../hooks/useAdminBooks'
 import { FONT_DISPLAY } from '../../theme/typography'
 
-function formatCatalogStat(count: number): string {
-  if (count >= 1000) {
-    const rounded = Math.floor(count / 100) / 10
-    return `${rounded % 1 === 0 ? Math.floor(count / 1000) : rounded}K+`
+/** Only show a metric once it clears this floor — small exact counts stay off the hero. */
+const HERO_STAT_THRESHOLDS = {
+  books: 20,
+  authors: 10,
+  readers: 50,
+} as const
+
+const DISPLAY_FLOORS = [1000, 500, 250, 100, 50, 20, 10] as const
+
+function formatFloorPlus(count: number, minFloor: number): string | null {
+  if (count < minFloor) return null
+  for (const floor of DISPLAY_FLOORS) {
+    if (floor < minFloor) continue
+    if (count >= floor) {
+      if (floor >= 1000) return `${Math.floor(count / 1000)}K+`
+      return `${floor}+`
+    }
   }
-  return count > 0 ? `${count}+` : '0'
+  return null
 }
 
-export default function PictoriaHomeContent() {
+type HeroStatItem = { num: string; label: string }
+
+function buildHeroCatalogStats(input: {
+  bookCount?: number
+  authorCount?: number
+  readerCount?: number
+  loaded: boolean
+}): { mode: 'loading' } | { mode: 'soft'; line: string } | { mode: 'stats'; items: HeroStatItem[] } {
+  if (!input.loaded) return { mode: 'loading' }
+
+  const items: HeroStatItem[] = []
+  const books = formatFloorPlus(input.bookCount ?? 0, HERO_STAT_THRESHOLDS.books)
+  const authors = formatFloorPlus(input.authorCount ?? 0, HERO_STAT_THRESHOLDS.authors)
+  const readers = formatFloorPlus(input.readerCount ?? 0, HERO_STAT_THRESHOLDS.readers)
+
+  if (books) items.push({ num: books, label: 'Books' })
+  if (authors) items.push({ num: authors, label: 'Authors' })
+  if (readers) items.push({ num: readers, label: 'Readers' })
+
+  if (items.length === 0) {
+    return { mode: 'soft', line: 'A growing curated library of illustrated stories' }
+  }
+  return { mode: 'stats', items }
+}
+
+export default function PictoriyaHomeContent() {
   const { data: featuredBooks = [], isLoading: featuredLoading } = useFeaturedBooks()
   const { data: newBooks = [], isLoading: newLoading } = useNewBooks()
-  const { data: catalogStats } = useCatalogStats()
+  const { data: mostLikedBooks = [] } = useMostLikedBooks()
+  const { data: catalogStats, isSuccess: catalogStatsLoaded } = useCatalogStats()
   const heroSlug = featuredBooks[0]?.slug ?? 'the-enchanted-garden'
+  const heroStats = buildHeroCatalogStats({
+    bookCount: catalogStats?.bookCount,
+    authorCount: catalogStats?.authorCount,
+    readerCount: catalogStats?.readerCount,
+    loaded: catalogStatsLoaded,
+  })
+
 
   return (
     <div
@@ -130,13 +176,85 @@ export default function PictoriaHomeContent() {
                 fontSize: 17,
                 color: "#6B4226",
                 lineHeight: 1.75,
-                marginBottom: 32,
+                marginBottom: 24,
                 maxWidth: 480,
               }}
             >
               Discover a curated library of beautifully illustrated books — where
               every page is a painting and every chapter a journey worth taking.
             </p>
+
+            {/* Catalog snapshot — numbers only after meaningful thresholds */}
+            {heroStats.mode === 'loading' ? null : heroStats.mode === 'soft' ? (
+              <p
+                style={{
+                  marginBottom: 28,
+                  maxWidth: 420,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#8B2635',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {heroStats.line}
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'stretch',
+                  gap: 0,
+                  marginBottom: 28,
+                  flexWrap: 'wrap',
+                  maxWidth: 420,
+                }}
+                aria-label="Library snapshot"
+              >
+                {heroStats.items.map((stat, index) => (
+                  <div
+                    key={stat.label}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingRight: index < heroStats.items.length - 1 ? 20 : 0,
+                      marginRight: index < heroStats.items.length - 1 ? 20 : 0,
+                      borderRight:
+                        index < heroStats.items.length - 1
+                          ? '1px solid rgba(201,149,42,0.45)'
+                          : 'none',
+                      minWidth: 72,
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: FONT_DISPLAY,
+                          fontWeight: 700,
+                          fontSize: 26,
+                          lineHeight: 1.1,
+                          color: '#8B2635',
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        {stat.num}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 4,
+                          fontSize: 11,
+                          color: '#9B6B4A',
+                          fontWeight: 600,
+                          letterSpacing: '0.04em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {stat.label}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* CTA Buttons */}
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -204,38 +322,6 @@ export default function PictoriaHomeContent() {
                 Browse catalog
                 <ChevronRight size={16} />
               </Link>
-            </div>
-
-            {/* Quick Stats */}
-            <div
-              style={{
-                display: "flex",
-                gap: 28,
-                marginTop: 40,
-                flexWrap: "wrap",
-              }}
-            >
-              {[
-                { num: formatCatalogStat(catalogStats?.bookCount ?? 0), label: "Illustrated Books" },
-                { num: formatCatalogStat(catalogStats?.authorCount ?? 0), label: "Authors" },
-                { num: formatCatalogStat(catalogStats?.readerCount ?? 0), label: "Readers" },
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <div
-                    style={{
-                      fontFamily: FONT_DISPLAY,
-                      fontWeight: 700,
-                      fontSize: 22,
-                      color: "#8B2635",
-                    }}
-                  >
-                    {stat.num}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#9B6B4A", fontWeight: 500 }}>
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -411,7 +497,7 @@ export default function PictoriaHomeContent() {
                   Editor's Pick
                 </span>
               </div>
-              <h2 className="font-pictoria text-[clamp(1.35rem,3vw,1.75rem)] font-bold text-[#3D2314]">
+              <h2 className="font-pictoriya text-[clamp(1.35rem,3vw,1.75rem)] font-bold text-[#3D2314]">
                 Featured Reads
               </h2>
             </div>
@@ -515,7 +601,7 @@ export default function PictoriaHomeContent() {
                   Just Added
                 </span>
               </div>
-              <h2 className="font-pictoria text-[clamp(1.35rem,3vw,1.75rem)] font-bold text-[#3D2314]">
+              <h2 className="font-pictoriya text-[clamp(1.35rem,3vw,1.75rem)] font-bold text-[#3D2314]">
                 New Arrivals
               </h2>
             </div>
@@ -540,6 +626,53 @@ export default function PictoriaHomeContent() {
         </div>
       </section>
 
+      {/* ===== READER FAVORITES (most liked) ===== */}
+      {mostLikedBooks.length > 0 && (
+        <section id="reader-favorites" className="scroll-mt-[88px]" style={{ padding: "48px 0 56px", background: "#FEF8EE", borderTop: "1.5px solid #E8C98A", borderBottom: "1.5px solid #E8C98A" }}>
+          <div className="page-gutter">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-7">
+              <div className="min-w-0">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 6,
+                  }}
+                >
+                  <Heart size={16} fill="#8B2635" color="#8B2635" />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#9B6B4A",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Loved by readers
+                  </span>
+                </div>
+                <h2 className="font-pictoriya text-[clamp(1.35rem,3vw,1.75rem)] font-bold text-[#3D2314]">
+                  Reader Favorites
+                </h2>
+              </div>
+              <Link
+                to="/library"
+                className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-[#8B2635] no-underline"
+              >
+                Open catalog <ChevronRight size={14} />
+              </Link>
+            </div>
+            <div className="book-grid">
+              {mostLikedBooks.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ===== CATALOG CTA (full list lives on /library) ===== */}
       <section
         id="browse-catalog"
@@ -551,7 +684,7 @@ export default function PictoriaHomeContent() {
         }}
       >
         <div className="page-gutter flex flex-col items-center py-6 text-center sm:py-10">
-          <h2 className="font-pictoria text-[clamp(1.5rem,3vw,2rem)] font-semibold text-[#3D2314]">Full catalog</h2>
+          <h2 className="font-pictoriya text-[clamp(1.5rem,3vw,2rem)] font-semibold text-[#3D2314]">Full catalog</h2>
           <p
             className="mt-3 max-w-lg text-sm leading-relaxed text-[#6B4226]"
           >

@@ -4,10 +4,12 @@ import { authMiddleware } from '../middleware/auth.middleware'
 import { optionalAuthMiddleware } from '../middleware/optionalAuth.middleware'
 import { requireRole } from '../middleware/role.middleware'
 import { uploadSingle } from '../middleware/upload.middleware'
+import { uploadRateLimiter } from '../middleware/rateLimit.middleware'
 
 const router = Router()
 
 router.get('/catalog-stats', bookController.getCatalogStats)
+router.get('/most-liked', bookController.getMostLikedBooks)
 router.get(
   '/manage/:id',
   authMiddleware,
@@ -20,6 +22,7 @@ router.post(
   '/',
   authMiddleware,
   requireRole('admin'),
+  uploadRateLimiter,
   uploadSingle,
   bookController.createBook,
 )
@@ -27,6 +30,7 @@ router.put(
   '/:id',
   authMiddleware,
   requireRole('admin'),
+  uploadRateLimiter,
   uploadSingle,
   bookController.updateBook,
 )

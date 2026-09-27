@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
+const TOKEN_STORAGE_KEY = 'pictoriya_token'
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
@@ -9,7 +11,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('pictoria_token')
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -21,7 +23,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const hadToken = Boolean(error.config?.headers?.Authorization)
-      localStorage.removeItem('pictoria_token')
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
       useAuthStore.getState().logout()
       if (
         hadToken &&

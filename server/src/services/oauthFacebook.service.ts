@@ -82,12 +82,12 @@ export async function verifyFacebookAccessToken(accessToken: string): Promise<Fa
     throw new OAuthError('INVALID_TOKEN', 'Could not load Facebook profile.', 401)
   }
 
-  const email = (me.email ?? `${me.id}@facebook.pictoria.local`).toLowerCase().trim()
+  const email = (me.email ?? `${me.id}@facebook.pictoriya.local`).toLowerCase().trim()
 
   return {
     facebookId: me.id,
     email,
-    name: (me.name ?? 'Pictoria Reader').trim(),
+    name: (me.name ?? 'Pictoriya Reader').trim(),
     picture: me.picture?.data?.url,
   }
 }

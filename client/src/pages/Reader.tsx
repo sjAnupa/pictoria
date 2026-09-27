@@ -3,10 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import ChapterScrollReader from '../features/reader/ChapterScrollReader'
 import PageMeta from '../components/common/PageMeta'
 import { useChapterReader } from '../hooks/useBooks'
+import { useTrackBookView } from '../hooks/useBookViews'
 import { trackReading, flushReadingProgress } from '../hooks/useReadingProgress'
 import { invalidateReadingProgress } from '../lib/queryClient'
 import { useAuthStore } from '../store/authStore'
 import { getChapterAccess } from '../utils/chapterAccess'
+import { BookServiceError } from '../services/bookService'
 import type { SaveProgressPayload } from '../types/progress.types'
 
 const Reader = () => {
@@ -15,7 +17,16 @@ const Reader = () => {
   const validChapter = Number.isFinite(chNum) && chNum > 0
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
-  const { data, isLoading, isError } = useChapterReader(bookId, validChapter ? chNum : 0)
+  const { data, isLoading, isError, error } = useChapterReader(bookId, validChapter ? chNum : 0)
+
+  const accessDenied =
+    error instanceof BookServiceError && error.status === 403
+      ? {
+          allowed: false as const,
+          reason: (error.code === 'PREMIUM_REQUIRED' ? 'premium' : 'login') as 'login' | 'premium',
+          message: error.message,
+        }
+      : null
 
   const backSlug = data?.book.slug ?? ''
   const bookTitle = data?.book.title
@@ -24,9 +35,12 @@ const Reader = () => {
   const totalPages = pageUrls?.length ?? 0
 
   const access = useMemo(() => {
+    if (accessDenied) return accessDenied
     if (!data?.book) return { allowed: true as const }
     return getChapterAccess(data.book, chNum, isAuthenticated)
-  }, [data?.book, chNum, isAuthenticated])
+  }, [accessDenied, data?.book, chNum, isAuthenticated])
+
+  useTrackBookView(data?.book && access.allowed ? bookId : undefined)
 
   const lastSavedPage = useRef(0)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -101,16 +115,14 @@ const Reader = () => {
     ? chapterLabel
       ? `${bookTitle} — ${chapterLabel}`
       : bookTitle
-    : 'Read on Pictoria'
+    : 'Read on Pictoriya'
 
   return (
-    <div
-      className="flex min-h-[100dvh] flex-col bg-[#E8D4A8] font-sans"
-    >
+    <div className="flex min-h-[100dvh] flex-col bg-[#E8D4A8] font-sans">
       {bookTitle ? (
         <PageMeta
           title={readerTitle}
-          description={`Read ${bookTitle} on Pictoria.`}
+          description={`Read ${bookTitle} on Pictoriya.`}
           canonicalPath={backSlug ? `/books/${backSlug}` : undefined}
           type="book"
         />
@@ -121,16 +133,11 @@ const Reader = () => {
           <div className="flex min-h-[50dvh] items-center justify-center px-4 text-sm text-[#6B4226]">
             Loading chapter…
           </div>
-        ) : isError || !pageUrls?.length ? (
-          <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-2 px-4 text-center">
-            <p className="text-base font-semibold text-[#3D2314]">Chapter not found</p>
-            <p className="text-sm text-[#9B6B4A]">This chapter may not exist or the book is unavailable.</p>
-          </div>
-        ) : !access.allowed ? (
+        ) : accessDenied || (data && !access.allowed) ? (
           <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-4 px-6 text-center">
-            <p className="max-w-md text-lg font-bold text-[#3D2314]">{access.message}</p>
+            <p className="max-w-md text-lg font-bold text-[#3D2314]">{!access.allowed ? access.message : ''}</p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {access.reason === 'login' ? (
+              {!access.allowed && access.reason === 'login' ? (
                 <>
                   <Link
                     to="/register"
@@ -157,6 +164,11 @@ const Reader = () => {
                 </Link>
               ) : null}
             </div>
+          </div>
+        ) : isError || !pageUrls?.length ? (
+          <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-2 px-4 text-center">
+            <p className="text-base font-semibold text-[#3D2314]">Chapter not found</p>
+            <p className="text-sm text-[#9B6B4A]">This chapter may not exist or the book is unavailable.</p>
           </div>
         ) : (
           <ChapterScrollReader

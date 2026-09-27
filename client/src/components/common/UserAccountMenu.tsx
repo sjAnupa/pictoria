@@ -156,7 +156,7 @@ export default function UserAccountMenu() {
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 className="relative z-[1] w-full max-w-[400px] rounded-2xl border border-[#E8C98A] bg-[#FEF8EE] p-6 shadow-[0_24px_64px_rgba(90,40,10,0.22)]"
               >
-                <h2 id="logout-dialog-title" className="font-pictoria text-xl font-bold text-[#3D2314]">
+                <h2 id="logout-dialog-title" className="font-pictoriya text-xl font-bold text-[#3D2314]">
                   Sign out?
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-[#6B4226]">

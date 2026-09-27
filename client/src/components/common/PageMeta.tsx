@@ -9,7 +9,7 @@ type PageMetaProps = {
   jsonLd?: Record<string, unknown>
 }
 
-const SITE_NAME = 'Pictoria'
+const SITE_NAME = 'Pictoriya'
 
 function upsertMeta(name: string, content: string, property = false) {
   const attr = property ? 'property' : 'name'
@@ -68,7 +68,7 @@ export default function PageMeta({
     upsertLink('canonical', canonical)
     upsertMeta('og:url', canonical, true)
 
-    const jsonLdId = 'pictoria-page-jsonld'
+    const jsonLdId = 'pictoriya-page-jsonld'
     const existing = document.getElementById(jsonLdId)
     if (existing) existing.remove()
 

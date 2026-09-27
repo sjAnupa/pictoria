@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import { Types } from 'mongoose'
 import { successResponse, errorResponse } from '../utils/apiResponse'
 import { createChapterSchema, updateChapterSchema } from '../validators/chapter.validator'
 import { paramString } from '../utils/paramString'
@@ -12,6 +13,23 @@ import {
 } from '../services/chapter.service'
 import { findChapterForReading } from '../services/book.service'
 import { isCatalogAdmin } from '../middleware/optionalAuth.middleware'
+import { User } from '../models/User.model'
+import { Book } from '../models/Book.model'
+
+async function resolveViewer(req: Request) {
+  const isAdmin = isCatalogAdmin(req)
+  let isPremium = false
+  if (req.user?._id) {
+    const user = await User.findById(req.user._id).select('subscription.status').lean()
+    isPremium = user?.subscription?.status === 'premium'
+  }
+  return {
+    isAuthenticated: Boolean(req.user),
+    isAdmin,
+    isPremium,
+    catalogAdminPreview: isAdmin,
+  }
+}
 
 export const getChaptersByBook = async (req: Request, res: Response): Promise<Response> => {
   const chapters = await findChaptersByBookId(paramString(req.params.bookId))
@@ -24,16 +42,30 @@ export const getChapterForReading = async (req: Request, res: Response): Promise
     return errorResponse(res, 'Invalid chapter number', 400)
   }
 
+  const viewer = await resolveViewer(req)
   const payload = await findChapterForReading(
     paramString(req.params.bookId),
     chapterNumber,
-    isCatalogAdmin(req),
+    viewer,
   )
   if (!payload) {
     return errorResponse(res, 'Chapter not found', 404)
   }
 
-  return successResponse(res, payload)
+  if (payload.denied) {
+    return errorResponse(
+      res,
+      payload.message,
+      403,
+      [],
+      payload.reason === 'premium' ? 'PREMIUM_REQUIRED' : 'LOGIN_REQUIRED',
+    )
+  }
+
+  return successResponse(res, {
+    book: payload.book,
+    chapter: payload.chapter,
+  })
 }
 
 export const getChapterById = async (req: Request, res: Response): Promise<Response> => {
@@ -41,7 +73,23 @@ export const getChapterById = async (req: Request, res: Response): Promise<Respo
   if (!chapter) {
     return errorResponse(res, 'Chapter not found', 404)
   }
-  return successResponse(res, chapter)
+
+  if (isCatalogAdmin(req)) {
+    return successResponse(res, chapter)
+  }
+
+  if (!Types.ObjectId.isValid(String(chapter.bookId))) {
+    return errorResponse(res, 'Chapter not found', 404)
+  }
+
+  const book = await Book.findById(chapter.bookId).select('status').lean()
+  if (!book || book.status !== 'published') {
+    return errorResponse(res, 'Chapter not found', 404)
+  }
+
+  // Never expose page image URLs on this route for non-admins.
+  const { pageImageUrls: _urls, pageImageNames: _names, ...safe } = chapter
+  return successResponse(res, safe)
 }
 
 export const createChapter = async (req: Request, res: Response): Promise<Response> => {

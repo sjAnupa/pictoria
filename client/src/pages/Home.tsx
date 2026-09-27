@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import Navbar from '../components/common/Navbar'
 import Footer from '../components/common/Footer'
 import PageMeta from '../components/common/PageMeta'
-import PictoriaHomeContent from '../components/home/PictoriaHomeContent'
+import PictoriyaHomeContent from '../components/home/PictoriyaHomeContent'
 
 const Home = () => {
   const location = useLocation()
@@ -23,12 +23,12 @@ const Home = () => {
     <div className="flex min-h-screen flex-col bg-[#FDF0D5]">
       <PageMeta
         title="Illustrated Storybooks Online"
-        description="Browse free illustrated storybooks on Pictoria. Read chapter previews without an account, save progress when you sign in, and discover new arrivals."
+        description="Browse free illustrated storybooks on Pictoriya. Read chapter previews without an account, save progress when you sign in, and discover new arrivals."
         canonicalPath="/"
       />
       <Navbar />
       <main className="flex-1 w-full min-w-0">
-        <PictoriaHomeContent />
+        <PictoriyaHomeContent />
       </main>
       <Footer />
     </div>

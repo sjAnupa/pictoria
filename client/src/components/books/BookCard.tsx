@@ -32,7 +32,7 @@ export default function BookCard({ book, variant = 'default', shortTile = false 
             <img src={book.coverImage} alt="" className="h-full w-full object-cover" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate font-pictoria text-[13px] font-semibold text-[#3D2314]">{book.title}</div>
+            <div className="truncate font-pictoriya text-[13px] font-semibold text-[#3D2314]">{book.title}</div>
             <div className="truncate text-[11px] text-[#9B6B4A]">{book.author}</div>
             <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-semibold text-[#9B6B4A]">
               <span>{book.year}</span>
@@ -82,7 +82,7 @@ export default function BookCard({ book, variant = 'default', shortTile = false 
             {book.genre}
           </span>
 
-          <h3 className="font-pictoria line-clamp-2 min-h-[2.5rem] text-[15px] font-bold leading-snug text-[#3D2314] sm:min-h-[2.75rem] sm:text-base">
+          <h3 className="font-pictoriya line-clamp-2 min-h-[2.5rem] text-[15px] font-bold leading-snug text-[#3D2314] sm:min-h-[2.75rem] sm:text-base">
             {book.title}
           </h3>
 

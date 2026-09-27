@@ -39,7 +39,7 @@ function BrandMark({ className = '' }: { className?: string }) {
     <Link
       to="/"
       className={`inline-flex items-center gap-3 no-underline ${className}`}
-      title="Pictoria home"
+      title="Pictoriya home"
     >
       <img
         src="/logo-mark.png"
@@ -49,10 +49,10 @@ function BrandMark({ className = '' }: { className?: string }) {
         className="h-11 w-11 shrink-0 object-contain"
       />
       <span
-        className="font-pictoria text-[1.75rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314]"
+        className="font-pictoriya text-[1.75rem] font-semibold leading-none tracking-[-0.02em] text-[#3D2314]"
         style={{ fontFeatureSettings: '"opsz" 72' }}
       >
-        Pictoria
+        Pictoriya
       </span>
     </Link>
   )
@@ -84,7 +84,7 @@ function BrandPanel() {
           className="h-[260px] w-[260px] max-w-full object-contain"
         />
         <p
-          className="font-pictoria mt-10 max-w-[280px] text-center text-[1.65rem] font-semibold leading-snug text-[#3D2314]"
+          className="font-pictoriya mt-10 max-w-[280px] text-center text-[1.65rem] font-semibold leading-snug text-[#3D2314]"
           style={{ fontFeatureSettings: '"opsz" 72' }}
         >
           Illustrated stories for every reader
@@ -92,7 +92,7 @@ function BrandPanel() {
       </div>
 
       <p className="relative z-[1] px-10 pb-8 text-center text-xs text-[#9B6B4A]/90">
-        © {new Date().getFullYear()} Pictoria
+        © {new Date().getFullYear()} Pictoriya
       </p>
     </div>
   )
@@ -124,7 +124,7 @@ export default function AuthScreen({
                 <BrandMark className="justify-center" />
               </div>
               <h1
-                className="font-pictoria text-center text-[1.75rem] font-bold leading-tight text-[#3D2314] sm:text-left sm:text-[2.35rem] lg:text-left"
+                className="font-pictoriya text-center text-[1.75rem] font-bold leading-tight text-[#3D2314] sm:text-left sm:text-[2.35rem] lg:text-left"
                 style={{ fontFeatureSettings: '"opsz" 72' }}
               >
                 {c.title}

@@ -24,7 +24,7 @@ export const authMiddleware = async (
   const token = authHeader.split(' ')[1]
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JwtPayload
     const user = await User.findById(decoded._id).select(
       'role is_admin is_super_admin isActive',
     )

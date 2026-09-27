@@ -15,6 +15,6 @@ export function signAuthToken(user: {
       is_super_admin: user.is_super_admin,
     },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN } as SignOptions,
+    { expiresIn: JWT_EXPIRES_IN, algorithm: 'HS256' } as SignOptions,
   )
 }

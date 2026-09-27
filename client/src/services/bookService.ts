@@ -4,9 +4,14 @@ import type { ApiSuccess } from '../types/api.types'
 import type { ApiBookRecord } from '../types/book.types'
 
 export class BookServiceError extends Error {
-  constructor(message: string) {
+  status?: number
+  code?: string
+
+  constructor(message: string, status?: number, code?: string) {
     super(message)
     this.name = 'BookServiceError'
+    this.status = status
+    this.code = code
   }
 }
 
@@ -16,6 +21,18 @@ function messageFromError(err: unknown, fallback: string): string {
     if (body?.message) return body.message
   }
   return fallback
+}
+
+function throwBookError(err: unknown, fallback: string): never {
+  if (axios.isAxiosError(err)) {
+    const body = err.response?.data as { message?: string; code?: string } | undefined
+    throw new BookServiceError(
+      body?.message ?? fallback,
+      err.response?.status,
+      body?.code,
+    )
+  }
+  throw new BookServiceError(fallback)
 }
 
 export type BookListParams = {
@@ -77,6 +94,17 @@ export async function fetchBooks(params: BookListParams = {}): Promise<BookListR
   }
 }
 
+export async function fetchMostLikedBooks(limit = 12): Promise<ApiBookRecord[]> {
+  try {
+    const { data } = await api.get<ApiSuccess<{ books: ApiBookRecord[] }>>('/books/most-liked', {
+      params: { limit },
+    })
+    return data.data.books
+  } catch (err) {
+    throw new BookServiceError(messageFromError(err, 'Failed to load most liked books.'))
+  }
+}
+
 export async function fetchBookBySlug(slug: string): Promise<ApiBookRecord> {
   try {
     const { data } = await api.get<ApiSuccess<ApiBookRecord>>(`/books/${slug}`)
@@ -96,6 +124,6 @@ export async function fetchChapterForReading(
     )
     return data.data
   } catch (err) {
-    throw new BookServiceError(messageFromError(err, 'Chapter not found.'))
+    throwBookError(err, 'Chapter not found.')
   }
 }

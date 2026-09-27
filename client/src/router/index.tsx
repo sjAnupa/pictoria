@@ -8,16 +8,19 @@ import BookDetail from '../pages/BookDetail'
 import Home from '../pages/Home'
 import Landing from '../pages/Landing'
 import Login from '../pages/Login'
+import NotFoundPage from '../pages/NotFoundPage'
 import Reader from '../pages/Reader'
 import Register from '../pages/Register'
 import AccountPage from '../pages/account/AccountPage'
 import LibraryPage from '../pages/library/LibraryPage'
+import RouteErrorPage from './RouteErrorPage'
 import RouteShell from './RouteShell'
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <RouteShell />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         path: 'login',
@@ -40,6 +43,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Home /> },
           { path: 'home', element: <Navigate to="/" replace /> },
+          { path: 'books', element: <Navigate to="/library" replace /> },
           { path: 'library', element: <LibraryPage /> },
           { path: 'books/:slug', element: <BookDetail /> },
           { path: 'read/:bookId/chapter/:chapterNumber', element: <Reader /> },
@@ -56,10 +60,12 @@ export const router = createBrowserRouter([
                   </AdminRoute>
                 ),
               },
+              { path: 'admin/*', element: <Navigate to="/admin" replace /> },
             ],
           },
         ],
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

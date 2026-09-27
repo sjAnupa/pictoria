@@ -14,6 +14,9 @@ export interface Book {
   description: string
   longDescription: string
   rating: number
+  totalReviews: number
+  totalLikes: number
+  totalViews: number
   pages: number
   year: number
   tags: string[]
@@ -23,6 +26,7 @@ export interface Book {
   freeChapterLimit?: number
   featured?: boolean
   isNew?: boolean
+  reviewsEnabled: boolean
 }
 
 export interface BookChapterMeta {
@@ -49,10 +53,14 @@ export type ApiBookRecord = {
   status: string
   featured?: boolean
   newArrival?: boolean
+  reviewsEnabled?: boolean
   totalChapters?: number
   createdAt?: string
   stats?: {
     averageRating?: number
+    totalLikes?: number
+    totalReviews?: number
+    totalViews?: number
   }
   chapters?: BookChapterMeta[]
 }

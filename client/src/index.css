@@ -84,7 +84,7 @@
   }
 
   .admin-stat-grid {
-    @apply mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5 xl:grid-cols-4;
+    @apply mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5 xl:grid-cols-5;
   }
 
   .admin-chart-grid {

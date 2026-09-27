@@ -12,6 +12,8 @@ import userRoutes from './routes/user.routes'
 import categoryRoutes from './routes/category.routes'
 import progressRoutes from './routes/progress.routes'
 import engagementRoutes from './routes/engagement.routes'
+import reviewRoutes from './routes/review.routes'
+import viewRoutes from './routes/view.routes'
 import adminRoutes from './routes/admin.routes'
 import { errorMiddleware } from './middleware/error.middleware'
 
@@ -44,6 +46,8 @@ app.use('/api/users', userRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/progress', progressRoutes)
 app.use('/api/engagement', engagementRoutes)
+app.use('/api/reviews', reviewRoutes)
+app.use('/api/views', viewRoutes)
 app.use('/api/admin', adminRoutes)
 
 app.use(errorMiddleware)

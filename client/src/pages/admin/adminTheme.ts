@@ -1,4 +1,4 @@
-/** Shared Pictoria palette for admin (matches public site). */
+/** Shared Pictoriya palette for admin (matches public site). */
 import { FONT_BODY } from '../../theme/typography'
 
 export const adminTheme = {

@@ -43,7 +43,7 @@ export default function AccountPage() {
         <header className="mb-6 rounded-2xl border border-[#E8C98A] bg-[#FEF8EE]/90 p-4 shadow-[0_10px_30px_-18px_rgba(90,40,10,0.3)] backdrop-blur-sm sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0 text-left">
-              <h1 className="font-pictoria text-[clamp(1.5rem,3.4vw,2.4rem)] font-semibold leading-tight text-[#3D2314]">
+              <h1 className="font-pictoriya text-[clamp(1.5rem,3.4vw,2.4rem)] font-semibold leading-tight text-[#3D2314]">
                 My Library
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#9B6B4A]">

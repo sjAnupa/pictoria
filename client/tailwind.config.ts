@@ -6,7 +6,7 @@ export default {
     extend: {
       fontFamily: {
         /** Book titles & section headings — readable literary serif */
-        pictoria: ['Literata', 'Georgia', 'serif'],
+        pictoriya: ['Literata', 'Georgia', 'serif'],
         display: ['Literata', 'Georgia', 'serif'],
         /** Body, UI, admin — Lexend is designed for comfortable screen reading */
         sans: ['Lexend', 'system-ui', 'sans-serif'],

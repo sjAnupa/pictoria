@@ -9,6 +9,10 @@ import { normalizeMediaUrl, normalizeMediaUrls } from '../config/storage'
 import { generateSlug } from '../utils/generateSlug'
 import { deleteStoredImage, uploadCoverImage } from './storage.service'
 import { CreateBookInput, UpdateBookInput, parseStringArray } from '../validators/book.validator'
+import {
+  evaluateChapterAccess,
+  type ChapterAccessViewer,
+} from '../utils/chapterAccess'
 
 export interface BookListQuery {
   genre?: string
@@ -58,6 +62,18 @@ export async function findAllBooks(query: BookListQuery) {
   }
 }
 
+export async function findMostLikedBooks(limit = 12) {
+  const books = await Book.find({ status: 'published', 'stats.totalLikes': { $gt: 0 } })
+    .sort({ 'stats.totalLikes': -1 })
+    .limit(Math.min(50, Math.max(1, limit)))
+    .lean()
+
+  return books.map((book) => ({
+    ...book,
+    coverImageUrl: normalizeMediaUrl(book.coverImageUrl),
+  }))
+}
+
 export async function findBookBySlug(slug: string, catalogAdminPreview = false) {
   const filter: Record<string, unknown> = { slug }
   if (!catalogAdminPreview) {
@@ -102,12 +118,12 @@ export async function findBookForAdminEdit(id: string) {
 export async function findChapterForReading(
   bookId: string,
   chapterNumber: number,
-  catalogAdminPreview = false,
+  viewer: ChapterAccessViewer & { catalogAdminPreview?: boolean },
 ) {
   if (!Types.ObjectId.isValid(bookId)) return null
 
   const bookFilter: Record<string, unknown> = { _id: bookId }
-  if (!catalogAdminPreview) {
+  if (!viewer.catalogAdminPreview) {
     bookFilter.status = 'published'
   }
 
@@ -117,7 +133,29 @@ export async function findChapterForReading(
   const chapter = await Chapter.findOne({ bookId: book._id, chapterNumber }).lean()
   if (!chapter) return null
 
+  const access = evaluateChapterAccess(
+    { accessType: book.accessType, freeChapterLimit: book.freeChapterLimit },
+    chapterNumber,
+    viewer,
+  )
+
+  if (!access.allowed) {
+    return {
+      denied: true as const,
+      reason: access.reason,
+      message: access.message,
+      book: {
+        _id: book._id,
+        slug: book.slug,
+        title: book.title,
+        accessType: book.accessType,
+        freeChapterLimit: book.freeChapterLimit,
+      },
+    }
+  }
+
   return {
+    denied: false as const,
     book: {
       _id: book._id,
       slug: book.slug,
@@ -177,6 +215,7 @@ export async function createBookRecord(
     status: input.status ?? 'draft',
     featured: input.featured ?? false,
     newArrival: input.newArrival ?? false,
+    reviewsEnabled: input.reviewsEnabled ?? true,
     uploadedBy,
   })
 
@@ -203,6 +242,7 @@ export async function updateBookRecord(
   if (input.tags !== undefined) book.tags = parseStringArray(input.tags)
   if (input.featured !== undefined) book.featured = input.featured
   if (input.newArrival !== undefined) book.newArrival = input.newArrival
+  if (input.reviewsEnabled !== undefined) book.reviewsEnabled = input.reviewsEnabled
 
   if (input.title) {
     book.slug = await ensureUniqueSlug(input.title, String(book._id))

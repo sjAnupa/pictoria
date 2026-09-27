@@ -1,6 +1,6 @@
 # OAuth migration tracker (Google → Facebook → prod)
 
-Use this checklist when moving Pictoria from local dev to production. **Never commit secrets** — store them in hosting env vars only.
+Use this checklist when moving Pictoriya from local dev to production. **Never commit secrets** — store them in hosting env vars only.
 
 ---
 

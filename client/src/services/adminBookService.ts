@@ -15,10 +15,12 @@ export type AdminDashboardStats = {
     users: number
     totalReads: number
     activeToday: number
+    totalViews: number
   }
   dailyReads: Array<{ date: string; reads: number }>
   genreDistribution: Array<{ name: string; value: number; color: string }>
   mostReadBooks: Array<{ title: string; reads: number }>
+  mostLikedBooks: Array<{ title: string; likes: number }>
   topReaders: Array<{
     name: string
     initials: string
@@ -85,6 +87,7 @@ export type SaveBookInput = {
   pageCount?: number
   accessType: 'free' | 'registered' | 'premium'
   status: 'draft' | 'published' | 'hidden' | 'archived'
+  reviewsEnabled?: boolean
   coverFile?: File | null
 }
 
@@ -100,6 +103,9 @@ function appendBookFields(fd: FormData, input: SaveBookInput): void {
   fd.append('tags', JSON.stringify(input.tags))
   fd.append('accessType', input.accessType)
   fd.append('status', input.status)
+  if (input.reviewsEnabled !== undefined) {
+    fd.append('reviewsEnabled', String(input.reviewsEnabled))
+  }
   if (input.publicationYear) {
     fd.append('publicationYear', String(input.publicationYear))
   }

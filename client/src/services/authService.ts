@@ -57,7 +57,7 @@ function messageFromError(err: unknown, fallback: string): { message: string; co
     if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
       return {
         message:
-          'Cannot reach the API server. Start it with: cd server && npm run dev (port 5000).',
+          'We could not connect to Pictoriya right now. Please refresh the page and try again. If this continues, the service may be temporarily unavailable.',
         code: 'NETWORK_ERROR',
       }
     }

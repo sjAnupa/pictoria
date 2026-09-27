@@ -14,7 +14,7 @@ const Footer = () => {
     >
       <div className="page-gutter mb-8 grid grid-cols-1 gap-8 sm:mb-10 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] sm:gap-10">
         <div>
-          <div className="font-pictoria mb-2.5 text-xl font-semibold text-[#F5D9A0] sm:text-[22px]">Pictoria</div>
+          <div className="font-pictoriya mb-2.5 text-xl font-semibold text-[#F5D9A0] sm:text-[22px]">Pictoriya</div>
           <p className="text-[13px] leading-relaxed text-[#9B6B4A]">
             A warm, illustrated library for curious readers who believe every story deserves beautiful art.
           </p>
@@ -52,7 +52,7 @@ const Footer = () => {
         ))}
       </div>
       <div className="page-gutter flex flex-col flex-wrap items-center justify-between gap-3 border-t border-[#E8C98A]/20 pt-6 sm:flex-row">
-        <div className="text-xs text-[#6B4226]">© {new Date().getFullYear()} Pictoria. Made with care for readers everywhere.</div>
+        <div className="text-xs text-[#6B4226]">© {new Date().getFullYear()} Pictoriya. Made with care for readers everywhere.</div>
         <div className="flex gap-4">
           {['Privacy', 'Terms', 'Cookies'].map((item) => (
             <a key={item} href="#" className="text-xs text-[#6B4226] no-underline hover:text-[#9B6B4A]">

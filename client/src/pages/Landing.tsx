@@ -23,8 +23,8 @@ const Landing = () => {
           background: 'rgba(253, 240, 213, 0.95)',
         }}
       >
-        <Link to="/" className="font-pictoria no-underline text-[22px] font-bold text-[#3D2314]">
-          Pictoria
+        <Link to="/" className="font-pictoriya no-underline text-[22px] font-bold text-[#3D2314]">
+          Pictoriya
         </Link>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <Link
@@ -111,7 +111,7 @@ const Landing = () => {
               maxWidth: 480,
             }}
           >
-            Pictoria is your warm, parchment-toned home for illustrated books. Sign in to browse the full library, or preview a title while you decide.
+            Pictoriya is your warm, parchment-toned home for illustrated books. Sign in to browse the full library, or preview a title while you decide.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
             <Link

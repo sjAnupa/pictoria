@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchBookBySlug, fetchBooks, fetchChapterForReading } from '../services/bookService'
+import { fetchBookBySlug, fetchBooks, fetchChapterForReading, fetchMostLikedBooks } from '../services/bookService'
 import { useAuthStore } from '../store/authStore'
 import { canAccessAdminPortal } from '../utils/authPermissions'
 import { mapApiBook, mapApiBooks } from '../utils/mapBook'
@@ -56,6 +56,16 @@ export function useNewBooks() {
         catalogAdminPreview,
       })
       return mapApiBooks(result.books)
+    },
+  })
+}
+
+export function useMostLikedBooks() {
+  return useQuery({
+    queryKey: ['books', 'most-liked'],
+    queryFn: async () => {
+      const records = await fetchMostLikedBooks(12)
+      return mapApiBooks(records)
     },
   })
 }
