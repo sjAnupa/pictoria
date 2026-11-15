@@ -8,7 +8,9 @@ const start = async (): Promise<void> => {
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
-    console.log(`Cover images: ${getCoverStorageBackend()} server (uploads/covers/)`)
+    console.log(
+      `Cover images: ${getCoverStorageBackend() === 'r2' ? 'Cloudflare R2' : 'local disk (uploads/covers/)'}`,
+    )
     console.log(
       `Chapter pages: ${getPageStorageBackend() === 'r2' ? 'Cloudflare R2' : 'local disk (uploads/pages/)'}`,
     )

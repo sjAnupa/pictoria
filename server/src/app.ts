@@ -23,9 +23,41 @@ app.use(
   helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     crossOriginEmbedderPolicy: false,
+    // Frontend (pictoriya.com) loads media from API host (api.pictoriya.com).
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   }),
 )
-app.use(cors({ origin: CLIENT_URL, credentials: true }))
+
+function buildClientOrigins(primary: string): string[] {
+  const origins = new Set<string>([primary])
+  try {
+    const url = new URL(primary)
+    const host = url.hostname
+    if (host.startsWith('www.')) {
+      url.hostname = host.slice(4)
+    } else if (host !== 'localhost' && !host.endsWith('.localhost')) {
+      url.hostname = `www.${host}`
+    }
+    origins.add(url.origin)
+  } catch {
+    /* keep primary only */
+  }
+  return Array.from(origins)
+}
+
+const clientOrigins = buildClientOrigins(CLIENT_URL)
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || clientOrigins.includes(origin)) {
+        callback(null, true)
+        return
+      }
+      callback(null, false)
+    },
+    credentials: true,
+  }),
+)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 

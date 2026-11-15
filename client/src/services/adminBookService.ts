@@ -142,18 +142,15 @@ export async function fetchBookForEdit(bookId: string): Promise<AdminBookEditRec
 export async function createAdminBook(input: SaveBookInput): Promise<ApiBookRecord> {
   const fd = new FormData()
   appendBookFields(fd, input)
-  const { data } = await api.post<ApiSuccess<ApiBookRecord>>('/books', fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  // Do not set Content-Type manually — the browser must add the multipart boundary.
+  const { data } = await api.post<ApiSuccess<ApiBookRecord>>('/books', fd)
   return data.data
 }
 
 export async function updateAdminBook(bookId: string, input: SaveBookInput): Promise<ApiBookRecord> {
   const fd = new FormData()
   appendBookFields(fd, input)
-  const { data } = await api.put<ApiSuccess<ApiBookRecord>>(`/books/${bookId}`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const { data } = await api.put<ApiSuccess<ApiBookRecord>>(`/books/${bookId}`, fd)
   return data.data
 }
 
@@ -170,9 +167,7 @@ export async function createAdminChapter(
   fd.append('title', title.trim())
   fd.append('pageManifest', JSON.stringify(manifest))
   pageFiles.forEach((file) => fd.append('pages', file))
-  await api.post('/chapters', fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  await api.post('/chapters', fd)
 }
 
 export async function updateAdminChapter(
@@ -193,9 +188,7 @@ export async function updateAdminChapter(
     fd.append('pageManifest', JSON.stringify(input.pageManifest))
   }
   pageFiles?.forEach((file) => fd.append('pages', file))
-  await api.put(`/chapters/${chapterId}`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  await api.put(`/chapters/${chapterId}`, fd)
 }
 
 export async function deleteAdminChapter(chapterId: string): Promise<void> {
@@ -206,7 +199,10 @@ export async function updateAdminBookStatus(
   bookId: string,
   status: 'published' | 'draft' | 'hidden' | 'archived',
 ): Promise<void> {
-  await api.put(`/books/${bookId}`, { status })
+  // Same multipart route as book update (multer). JSON-only body was unreliable here.
+  const fd = new FormData()
+  fd.append('status', status)
+  await api.put(`/books/${bookId}`, fd)
 }
 
 export async function deleteAdminBook(bookId: string): Promise<void> {
