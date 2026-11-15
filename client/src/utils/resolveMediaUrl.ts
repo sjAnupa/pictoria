@@ -1,8 +1,10 @@
 /**
  * Resolve media URLs returned by the API for use in <img src>.
  *
- * Local (temporary): `/uploads/...` paths — proxied to the API server in dev.
- * R2 (production): full https URLs — used as-is.
+ * - R2 / CDN: full `https://…` URLs — used as-is (preferred for covers + pages in prod).
+ * - Local: `/uploads/...` — Vite-proxied in DEV; prefixed with API origin in PROD builds.
+ *
+ * See docs/MEDIA_STORAGE.md.
  */
 export function resolveMediaUrl(url: string | undefined | null): string {
   if (!url) return ''
@@ -10,10 +12,19 @@ export function resolveMediaUrl(url: string | undefined | null): string {
   const trimmed = url.trim()
   if (!trimmed) return ''
 
-  // Legacy absolute local URLs → relative path
+  // Absolute URL that embeds a legacy /uploads/ path → normalize to relative then re-resolve
   const uploadsMarker = '/uploads/'
   const markerIndex = trimmed.indexOf(uploadsMarker)
   if (markerIndex >= 0 && (trimmed.startsWith('http://') || trimmed.startsWith('https://'))) {
+    // Already on R2/CDN public host — keep full URL (covers + pages).
+    try {
+      const host = new URL(trimmed).hostname
+      if (host !== 'localhost' && host !== '127.0.0.1' && !host.endsWith('.localhost')) {
+        return trimmed
+      }
+    } catch {
+      /* fall through */
+    }
     return resolveMediaUrl(trimmed.slice(markerIndex))
   }
 

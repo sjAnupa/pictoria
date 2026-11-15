@@ -40,7 +40,7 @@ import {
   type AdminBookEditRecord,
   type AdminChapterRecord,
 } from '../../../services/adminBookService'
-import type { AdminBookRow } from '../../../utils/mapAdminBook'
+import { adminStatusToApi, type AdminBookRow } from '../../../utils/mapAdminBook'
 import { adminTheme, ADMIN_FONT } from '../adminTheme'
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl'
 import {
@@ -450,7 +450,8 @@ export default function BookFormView({ editingBook, onBack }: BookFormViewProps)
         publicationYear: form.year ? Number(form.year) : undefined,
         pageCount: form.pages ? Number(form.pages) : undefined,
         accessType: form.accessType,
-        status: 'draft' as const,
+        // New books start as draft; edits keep current catalog status (Publish from list).
+        status: isEdit ? adminStatusToApi(editingBook?.status) : 'draft',
         reviewsEnabled: form.reviewsEnabled,
         coverFile,
       }
@@ -513,6 +514,7 @@ export default function BookFormView({ editingBook, onBack }: BookFormViewProps)
     coverFile,
     coverPreview,
     editingBook?.id,
+    editingBook?.status,
     form,
     isEdit,
     queryClient,
@@ -873,7 +875,7 @@ export default function BookFormView({ editingBook, onBack }: BookFormViewProps)
                   lineHeight: 1.5,
                 }}
               >
-                Books are saved as <strong>draft</strong> until you publish them from the books
+                New books are saved as <strong>draft</strong> until you publish them from the books
                 list. You can add chapters and details gradually — publishing can wait until the
                 book is ready.
               </div>

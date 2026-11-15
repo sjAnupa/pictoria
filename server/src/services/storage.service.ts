@@ -21,9 +21,9 @@ export function getPageStorageBackend(): PageStorageBackend {
   return isR2Configured() ? 'r2' : 'local'
 }
 
-/** Covers stay on this server. Only chapter pages use R2. */
-export function getCoverStorageBackend(): 'local' {
-  return 'local'
+/** Covers use R2 when configured (required for durable production deploys). */
+export function getCoverStorageBackend(): PageStorageBackend {
+  return isR2Configured() ? 'r2' : 'local'
 }
 
 /** @deprecated use getPageStorageBackend / getCoverStorageBackend */
@@ -90,25 +90,40 @@ export async function deleteLocalByStoredUrl(storedUrl: string): Promise<void> {
   }
 }
 
+/** Unique cover basename so CDN/browser caches do not serve a replaced image. */
+function coverObjectBasename(): string {
+  return `cover-${Date.now()}`
+}
+
 /**
- * Book cover — always on the app server at `uploads/covers/books/{slug}/cover.webp`.
- * Never uploaded to R2 (high reuse across home, library, cards, account).
+ * Book cover — R2 when configured, otherwise local
+ * `uploads/covers/books/{slug}/cover-{timestamp}.webp`.
  */
 export async function uploadCoverImage(
   file: Express.Multer.File,
   bookSlug: string,
 ): Promise<string> {
-  return saveLocalImageBuffer(file.buffer, bookCoverRelativeDir(bookSlug), 'cover')
+  const relativeDir = bookCoverRelativeDir(bookSlug)
+  const basename = coverObjectBasename()
+  if (isR2Configured()) {
+    return uploadImageToR2(file, relativeDir, basename)
+  }
+  return saveLocalImageBuffer(file.buffer, relativeDir, basename)
 }
 
-/** Download a remote URL into the local covers directory (seed / import). */
+/** Download a remote URL into cover storage (seed / import). */
 export async function saveRemoteCoverUrl(imageUrl: string, bookSlug: string): Promise<string> {
   const response = await fetch(imageUrl)
   if (!response.ok) {
     throw new Error(`Failed to download cover: ${imageUrl}`)
   }
   const buffer = Buffer.from(await response.arrayBuffer())
-  return saveLocalImageBuffer(buffer, bookCoverRelativeDir(bookSlug), 'cover')
+  const relativeDir = bookCoverRelativeDir(bookSlug)
+  const basename = coverObjectBasename()
+  if (isR2Configured()) {
+    return uploadBufferToR2(buffer, relativeDir, basename, 'webp')
+  }
+  return saveLocalImageBuffer(buffer, relativeDir, basename)
 }
 
 /**

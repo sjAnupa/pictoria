@@ -1,11 +1,11 @@
 /**
  * Media file layout.
  *
- * COVERS — always on the app server under `uploads/covers/` (never R2).
+ * COVERS — R2 when configured; otherwise `uploads/covers/`.
  * PAGES  — Cloudflare R2 when configured; otherwise `uploads/pages/`.
  */
 
-/** Book cover images — never uploaded to R2. */
+/** Book cover images (local path prefix / R2 key prefix). */
 export const COVERS_ROOT = 'covers/books'
 
 /** Illustrated chapter pages. R2 object keys use this prefix. */

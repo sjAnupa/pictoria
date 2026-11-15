@@ -29,7 +29,13 @@ export default function BookCard({ book, variant = 'default', shortTile = false 
       <Link to={`/books/${book.slug}`} className="block no-underline">
         <div className="flex gap-2.5 rounded-xl border-[1.5px] border-[#E8C98A] bg-[#FEF8EE] p-2.5 transition hover:-translate-y-0.5 hover:shadow-md sm:gap-3 sm:p-3">
           <div className="h-[60px] w-[44px] shrink-0 overflow-hidden rounded-md shadow-md">
-            <img src={book.coverImage} alt="" className="h-full w-full object-cover" />
+            <img
+              src={book.coverImage}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate font-pictoriya text-[13px] font-semibold text-[#3D2314]">{book.title}</div>
@@ -66,6 +72,8 @@ export default function BookCard({ book, variant = 'default', shortTile = false 
           <img
             src={book.coverImage}
             alt={book.title}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition duration-300 hover:scale-[1.04]"
           />
           <div

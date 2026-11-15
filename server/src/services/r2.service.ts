@@ -2,6 +2,19 @@ import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
 import { r2Client, R2_BUCKET_NAME, R2_PUBLIC_URL } from '../config/r2'
 
+/** Versioned objects can be cached long; replace-cover uses a new filename. */
+const R2_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+
+function publicUrlForKey(key: string): string {
+  return `${R2_PUBLIC_URL.replace(/\/$/, '')}/${key.replace(/^\//, '')}`
+}
+
+function keyFromPublicUrl(imageUrl: string): string | null {
+  const prefix = `${R2_PUBLIC_URL.replace(/\/$/, '')}/`
+  if (!imageUrl.startsWith(prefix)) return null
+  return imageUrl.slice(prefix.length).split('?')[0]
+}
+
 /** Upload to Cloudflare R2. Returns the public CDN URL. */
 export async function uploadImageToR2(
   file: Express.Multer.File,
@@ -17,10 +30,11 @@ export async function uploadImageToR2(
       Key: key,
       Body: webpBuffer,
       ContentType: 'image/webp',
+      CacheControl: R2_CACHE_CONTROL,
     }),
   )
 
-  return `${R2_PUBLIC_URL}/${key}`
+  return publicUrlForKey(key)
 }
 
 export async function uploadBufferToR2(
@@ -38,17 +52,17 @@ export async function uploadBufferToR2(
       Key: key,
       Body: body,
       ContentType: extension === 'webp' ? 'image/webp' : 'image/png',
+      CacheControl: R2_CACHE_CONTROL,
     }),
   )
 
-  return `${R2_PUBLIC_URL}/${key}`
+  return publicUrlForKey(key)
 }
 
 export async function deleteImageFromR2(imageUrl: string): Promise<void> {
-  const prefix = `${R2_PUBLIC_URL}/`
-  if (!imageUrl.startsWith(prefix)) return
+  const key = keyFromPublicUrl(imageUrl)
+  if (!key) return
 
-  const key = imageUrl.slice(prefix.length)
   await r2Client.send(
     new DeleteObjectCommand({
       Bucket: R2_BUCKET_NAME,
@@ -58,5 +72,5 @@ export async function deleteImageFromR2(imageUrl: string): Promise<void> {
 }
 
 export function isR2MediaUrl(imageUrl: string): boolean {
-  return imageUrl.startsWith(`${R2_PUBLIC_URL}/`)
+  return keyFromPublicUrl(imageUrl) !== null
 }

@@ -5,9 +5,6 @@ const TOKEN_STORAGE_KEY = 'pictoriya_token'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 })
 
 api.interceptors.request.use((config) => {
@@ -15,6 +12,14 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // FormData needs the browser-generated multipart boundary — never force JSON.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers.delete('Content-Type')
+  } else if (!config.headers.get('Content-Type')) {
+    config.headers.set('Content-Type', 'application/json')
+  }
+
   return config
 })
 

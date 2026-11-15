@@ -44,3 +44,20 @@ export function mapApiBookToAdminRow(raw: ApiBookRecord & { createdAt?: string; 
 export function toggleAdminStatusApi(current: BookStatus): 'published' | 'hidden' {
   return current === 'Published' ? 'hidden' : 'published'
 }
+
+/** Map admin UI status label back to API enum. */
+export function adminStatusToApi(
+  status: BookStatus | undefined,
+): 'draft' | 'published' | 'hidden' | 'archived' {
+  switch (status) {
+    case 'Published':
+      return 'published'
+    case 'Hidden':
+      return 'hidden'
+    case 'Archived':
+      return 'archived'
+    case 'Draft':
+    default:
+      return 'draft'
+  }
+}
