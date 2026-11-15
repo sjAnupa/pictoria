@@ -48,4 +48,6 @@ export const isFacebookAuthConfigured = (): boolean =>
 export const isR2Configured = (): boolean =>
   CLOUDFLARE_ACCOUNT_ID !== 'placeholder' &&
   R2_ACCESS_KEY_ID !== 'placeholder' &&
-  R2_SECRET_ACCESS_KEY !== 'placeholder'
+  R2_SECRET_ACCESS_KEY !== 'placeholder' &&
+  R2_PUBLIC_URL.startsWith('https://') &&
+  !R2_PUBLIC_URL.includes('placeholder')

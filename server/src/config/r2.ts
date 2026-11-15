@@ -14,6 +14,9 @@ export const r2Client = new S3Client({
     accessKeyId: R2_ACCESS_KEY_ID,
     secretAccessKey: R2_SECRET_ACCESS_KEY,
   },
+  // Recent AWS SDK builds add checksum headers R2 rejects as AccessDenied.
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED',
 })
 
 export { R2_BUCKET_NAME, R2_PUBLIC_URL }

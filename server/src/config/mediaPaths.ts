@@ -1,26 +1,26 @@
 /**
- * Media file layout under `server/uploads/` (served at `/uploads/...`).
+ * Media file layout.
  *
- * COVERS — always stored on the app server (high reuse on every list/detail view).
- * PAGES  — stored locally during development; new uploads can go to R2 when configured.
+ * COVERS — always on the app server under `uploads/covers/` (never R2).
+ * PAGES  — Cloudflare R2 when configured; otherwise `uploads/pages/`.
  */
 
 /** Book cover images — never uploaded to R2. */
 export const COVERS_ROOT = 'covers/books'
 
-/** Illustrated chapter pages — local now, R2-ready paths for later. */
+/** Illustrated chapter pages. R2 object keys use this prefix. */
 export const PAGES_ROOT = 'pages'
 
 export function bookCoverRelativeDir(slug: string): string {
   return `${COVERS_ROOT}/${slug}`
 }
 
-/** Per-book chapter pages (admin uploads & future R2 keys mirror this path). */
+/** Per-book chapter pages. R2 object keys use this same path. */
 export function bookChapterPagesRelativeDir(slug: string, chapterNumber: number): string {
   return `${PAGES_ROOT}/books/${slug}/chapters/${chapterNumber}`
 }
 
-/** Shared seed/demo reader pages (local only). */
+/** Shared seed/demo reader pages. */
 export function sharedChapterPagesRelativeDir(chapterNumber: number): string {
   return `${PAGES_ROOT}/shared/read-pages/chapter-${chapterNumber}`
 }

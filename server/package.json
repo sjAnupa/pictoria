@@ -10,6 +10,7 @@
     "seed:categories": "ts-node-dev --transpile-only src/scripts/seedCategories.ts",
     "seed:books": "ts-node-dev --transpile-only src/scripts/seedBooks.ts",
     "migrate:media": "ts-node-dev --transpile-only src/scripts/migrateMediaUrls.ts",
+    "migrate:r2": "ts-node-dev --transpile-only src/scripts/migrateLocalMediaToR2.ts",
     "seed:clear-reading": "ts-node-dev --transpile-only src/scripts/clearReadingProgress.ts",
     "seed:cleanup-users": "ts-node-dev --transpile-only src/scripts/cleanupUsersForOAuth.ts"
   },

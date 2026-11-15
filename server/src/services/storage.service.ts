@@ -11,6 +11,7 @@ import { UPLOADS_ROOT, localMediaPath } from '../config/storage'
 import {
   deleteImageFromR2,
   isR2MediaUrl,
+  uploadBufferToR2,
   uploadImageToR2,
 } from './r2.service'
 
@@ -20,7 +21,7 @@ export function getPageStorageBackend(): PageStorageBackend {
   return isR2Configured() ? 'r2' : 'local'
 }
 
-/** Covers are always served from this server's disk. */
+/** Covers stay on this server. Only chapter pages use R2. */
 export function getCoverStorageBackend(): 'local' {
   return 'local'
 }
@@ -62,6 +63,13 @@ export async function saveLocalFileCopy(
   relativeDir: string,
   filename: string,
 ): Promise<string> {
+  if (isR2Configured()) {
+    const buffer = await fs.readFile(sourcePath)
+    const extension = path.extname(filename).replace(/^\./, '') || 'png'
+    const base = path.basename(filename, path.extname(filename))
+    return uploadBufferToR2(buffer, relativeDir, base, extension)
+  }
+
   const dir = await ensureUploadDir(relativeDir)
   const abs = path.join(dir, filename)
   await fs.copyFile(sourcePath, abs)
@@ -117,11 +125,7 @@ export async function uploadChapterPage(
   const relativeDir = bookChapterPagesRelativeDir(bookSlug, chapterNumber)
 
   if (isR2Configured()) {
-    try {
-      return await uploadImageToR2(file, relativeDir, pageFilename)
-    } catch (error) {
-      console.warn('[storage] R2 chapter page upload failed, using local:', error)
-    }
+    return uploadImageToR2(file, relativeDir, pageFilename)
   }
 
   return saveLocalImageBuffer(file.buffer, relativeDir, pageFilename)
@@ -140,15 +144,12 @@ export async function deleteStoredImage(imageUrl: string): Promise<void> {
   }
 }
 
-/** Placeholder reader pages for seed/demo — local only. */
+/** Placeholder reader pages for seed/demo. Stored on R2 when it is configured. */
 export async function generateReaderPagePng(
   relativeDir: string,
   pageNumber: number,
   options?: { chapterNumber?: number; fill?: string; stroke?: string },
 ): Promise<string> {
-  const dir = await ensureUploadDir(relativeDir)
-  const fileName = `${pageNumber}.png`
-  const abs = path.join(dir, fileName)
 
   const chapterNum = options?.chapterNumber ?? 1
   const fill = options?.fill ?? '#E8D4A8'
@@ -164,8 +165,15 @@ export async function generateReaderPagePng(
     </svg>`
 
   const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer()
-  await fs.writeFile(abs, pngBuffer)
+  const fileName = `${pageNumber}.png`
 
+  if (isR2Configured()) {
+    return uploadBufferToR2(pngBuffer, relativeDir, String(pageNumber), 'png')
+  }
+
+  const dir = await ensureUploadDir(relativeDir)
+  const abs = path.join(dir, fileName)
+  await fs.writeFile(abs, pngBuffer)
   return localMediaPath(`${relativeDir}/${fileName}`)
 }
 
