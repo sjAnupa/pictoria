@@ -1,0 +1,30 @@
+---
+description: Use a feature branch before any push; never push to main unless asked; confirm before pushing when unclear.
+alwaysApply: true
+---
+
+# Git push policy (Pictoriya)
+
+## Before push (required order)
+
+1. Check `git status`, `git diff`, and recent commits.
+2. **Create or checkout a separate feature branch** (never start a push from `main` for new work).
+   - Examples: `feat/about-page`, `fix/r2-cors`, `chore/legal-pages`
+3. Stage and commit on that branch as `sjanupa <sjanupa.17@cse.mrt.ac.lk>`.
+4. **Only push when the user explicitly asks to push** (e.g. "push", "push the branch").
+   - If they only said "commit", stop after commit — do not push.
+   - If push was implied but unclear, summarize the branch + commit and ask before `git push`.
+5. Push with: `git push -u origin <branch>` (not `main` / `master`).
+
+## Never do by default
+
+- Do not commit or push straight to `main` / `master` unless the user clearly says to.
+- Do not push only the archive monorepo for deploys; use `pictoria-client` and/or `pictoria-server`.
+
+## After push
+
+Tell the user the **branch name** and that they should open a PR into `main` (or say when they want it merged) so production stays stable.
+
+## Both repos
+
+If client and server both change, use a feature branch **in each repo** and push each only when asked.
